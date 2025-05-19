@@ -1,22 +1,22 @@
 {
-	"name": "claude-dev",
-	"displayName": "Cline",
-	"description": "Autonomous coding agent right in your IDE, capable of creating/editing files, running commands, using the browser, and more with your permission every step of the way.",
+	"name": "skyline-dev",
+	"displayName": "Skyline",
+	"description": "Modified version of Cline that uses an optimized 3-message conversation system for Skynet",
 	"version": "3.16.0",
 	"icon": "assets/icons/icon.png",
 	"engines": {
 		"vscode": "^1.84.0"
 	},
 	"author": {
-		"name": "Cline Bot Inc."
+		"name": "Claude for Skynet"
 	},
 	"license": "Apache-2.0",
-	"publisher": "saoudrizwan",
+	"publisher": "skyline",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/cline/cline"
 	},
-	"homepage": "https://cline.bot",
+	"homepage": "https://skynet.bot",
 	"categories": [
 		"AI",
 		"Chat",
@@ -26,7 +26,7 @@
 		"Testing"
 	],
 	"keywords": [
-		"cline",
+		"skyline",
 		"claude",
 		"dev",
 		"mcp",
@@ -49,88 +49,88 @@
 		"viewsContainers": {
 			"activitybar": [
 				{
-					"id": "claude-dev-ActivityBar",
-					"title": "Cline",
+					"id": "skyline-dev-ActivityBar",
+					"title": "Skyline",
 					"icon": "assets/icons/icon.svg"
 				}
 			]
 		},
 		"views": {
-			"claude-dev-ActivityBar": [
+			"skyline-dev-ActivityBar": [
 				{
 					"type": "webview",
-					"id": "claude-dev.SidebarProvider",
+					"id": "skyline-dev.SidebarProvider",
 					"name": ""
 				}
 			]
 		},
 		"commands": [
 			{
-				"command": "cline.plusButtonClicked",
+				"command": "skyline.plusButtonClicked",
 				"title": "New Task",
 				"icon": "$(add)"
 			},
 			{
-				"command": "cline.mcpButtonClicked",
+				"command": "skyline.mcpButtonClicked",
 				"title": "MCP Servers",
 				"icon": "$(server)"
 			},
 			{
-				"command": "cline.historyButtonClicked",
+				"command": "skyline.historyButtonClicked",
 				"title": "History",
 				"icon": "$(history)"
 			},
 			{
-				"command": "cline.popoutButtonClicked",
+				"command": "skyline.popoutButtonClicked",
 				"title": "Open in Editor",
 				"icon": "$(link-external)"
 			},
 			{
-				"command": "cline.accountButtonClicked",
+				"command": "skyline.accountButtonClicked",
 				"title": "Account",
 				"icon": "$(account)"
 			},
 			{
-				"command": "cline.settingsButtonClicked",
+				"command": "skyline.settingsButtonClicked",
 				"title": "Settings",
 				"icon": "$(settings-gear)"
 			},
 			{
-				"command": "cline.openInNewTab",
+				"command": "skyline.openInNewTab",
 				"title": "Open In New Tab",
-				"category": "Cline"
+				"category": "Skyline"
 			},
 			{
-				"command": "cline.dev.createTestTasks",
+				"command": "skyline.dev.createTestTasks",
 				"title": "Create Test Tasks",
-				"category": "Cline",
-				"when": "cline.isDevMode"
+				"category": "Skyline",
+				"when": "skyline.isDevMode"
 			},
 			{
-				"command": "cline.addToChat",
-				"title": "Add to Cline",
-				"category": "Cline"
+				"command": "skyline.addToChat",
+				"title": "Add to Skyline",
+				"category": "Skyline"
 			},
 			{
-				"command": "cline.addTerminalOutputToChat",
-				"title": "Add to Cline",
-				"category": "Cline"
+				"command": "skyline.addTerminalOutputToChat",
+				"title": "Add to Skyline",
+				"category": "Skyline"
 			},
 			{
-				"command": "cline.focusChatInput",
+				"command": "skyline.focusChatInput",
 				"title": "Jump to Chat Input",
-				"category": "Cline"
+				"category": "Skyline"
 			},
 			{
-				"command": "cline.generateGitCommitMessage",
-				"title": "Generate Commit Message with Cline",
-				"category": "Cline",
+				"command": "skyline.generateGitCommitMessage",
+				"title": "Generate Commit Message with Skyline",
+				"category": "Skyline",
 				"icon": "$(robot)"
 			}
 		],
 		"keybindings": [
 			{
-				"command": "cline.addToChat",
+				"command": "skyline.addToChat",
 				"key": "cmd+'",
 				"mac": "cmd+'",
 				"win": "ctrl+'",
@@ -138,104 +138,104 @@
 				"when": "editorHasSelection"
 			},
 			{
-				"command": "cline.generateGitCommitMessage",
+				"command": "skyline.generateGitCommitMessage",
 				"when": "scmProvider == git"
 			}
 		],
 		"menus": {
 			"view/title": [
 				{
-					"command": "cline.plusButtonClicked",
+					"command": "skyline.plusButtonClicked",
 					"group": "navigation@1",
-					"when": "view == claude-dev.SidebarProvider"
+					"when": "view == skyline-dev.SidebarProvider"
 				},
 				{
-					"command": "cline.mcpButtonClicked",
+					"command": "skyline.mcpButtonClicked",
 					"group": "navigation@2",
-					"when": "view == claude-dev.SidebarProvider"
+					"when": "view == skyline-dev.SidebarProvider"
 				},
 				{
-					"command": "cline.historyButtonClicked",
+					"command": "skyline.historyButtonClicked",
 					"group": "navigation@3",
-					"when": "view == claude-dev.SidebarProvider"
+					"when": "view == skyline-dev.SidebarProvider"
 				},
 				{
-					"command": "cline.popoutButtonClicked",
+					"command": "skyline.popoutButtonClicked",
 					"group": "navigation@4",
-					"when": "view == claude-dev.SidebarProvider"
+					"when": "view == skyline-dev.SidebarProvider"
 				},
 				{
-					"command": "cline.accountButtonClicked",
+					"command": "skyline.accountButtonClicked",
 					"group": "navigation@5",
-					"when": "view == claude-dev.SidebarProvider"
+					"when": "view == skyline-dev.SidebarProvider"
 				},
 				{
-					"command": "cline.settingsButtonClicked",
+					"command": "skyline.settingsButtonClicked",
 					"group": "navigation@6",
-					"when": "view == claude-dev.SidebarProvider"
+					"when": "view == skyline-dev.SidebarProvider"
 				}
 			],
 			"editor/title": [
 				{
-					"command": "cline.plusButtonClicked",
+					"command": "skyline.plusButtonClicked",
 					"group": "navigation@1",
-					"when": "activeWebviewPanelId == claude-dev.TabPanelProvider"
+					"when": "activeWebviewPanelId == skyline-dev.TabPanelProvider"
 				},
 				{
-					"command": "cline.mcpButtonClicked",
+					"command": "skyline.mcpButtonClicked",
 					"group": "navigation@2",
-					"when": "activeWebviewPanelId == claude-dev.TabPanelProvider"
+					"when": "activeWebviewPanelId == skyline-dev.TabPanelProvider"
 				},
 				{
-					"command": "cline.historyButtonClicked",
+					"command": "skyline.historyButtonClicked",
 					"group": "navigation@3",
-					"when": "activeWebviewPanelId == claude-dev.TabPanelProvider"
+					"when": "activeWebviewPanelId == skyline-dev.TabPanelProvider"
 				},
 				{
-					"command": "cline.popoutButtonClicked",
+					"command": "skyline.popoutButtonClicked",
 					"group": "navigation@4",
-					"when": "activeWebviewPanelId == claude-dev.TabPanelProvider"
+					"when": "activeWebviewPanelId == skyline-dev.TabPanelProvider"
 				},
 				{
-					"command": "cline.accountButtonClicked",
+					"command": "skyline.accountButtonClicked",
 					"group": "navigation@5",
-					"when": "activeWebviewPanelId == claude-dev.TabPanelProvider"
+					"when": "activeWebviewPanelId == skyline-dev.TabPanelProvider"
 				},
 				{
-					"command": "cline.settingsButtonClicked",
+					"command": "skyline.settingsButtonClicked",
 					"group": "navigation@6",
-					"when": "activeWebviewPanelId == claude-dev.TabPanelProvider"
+					"when": "activeWebviewPanelId == skyline-dev.TabPanelProvider"
 				}
 			],
 			"editor/context": [
 				{
-					"command": "cline.addToChat",
+					"command": "skyline.addToChat",
 					"group": "navigation",
 					"when": "editorHasSelection"
 				}
 			],
 			"terminal/context": [
 				{
-					"command": "cline.addTerminalOutputToChat",
+					"command": "skyline.addTerminalOutputToChat",
 					"group": "navigation"
 				}
 			],
 			"scm/title": [
 				{
-					"command": "cline.generateGitCommitMessage",
+					"command": "skyline.generateGitCommitMessage",
 					"group": "navigation",
 					"when": "scmProvider == git"
 				}
 			],
 			"commandPalette": [
 				{
-					"command": "cline.generateGitCommitMessage",
+					"command": "skyline.generateGitCommitMessage",
 					"when": "scmProvider == git"
 				}
 			]
 		},
 		"configuration": {
-			"title": "Cline",
+			"title": "Skyline",
 			"properties": {}
 		}
 	},

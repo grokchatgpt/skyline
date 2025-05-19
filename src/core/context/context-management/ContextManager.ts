@@ -243,20 +243,57 @@ export class ContextManager {
 	}
 
 	/**
-	 * apply all required truncation methods to the messages in context
+	 * SKYLINE MODIFICATION: Only return system prompt (first message) and the latest assistant/user messages.
+	 * This is the optimized 3-message conversation system for Skynet's Token Window Programmer.
 	 */
 	private getAndAlterTruncatedMessages(
 		messages: Anthropic.Messages.MessageParam[],
 		deletedRange: [number, number] | undefined,
 	): Anthropic.Messages.MessageParam[] {
+		// Handle edge cases with very few messages
 		if (messages.length <= 1) {
 			return messages
 		}
-
-		const updatedMessages = this.applyContextHistoryUpdates(messages, deletedRange ? deletedRange[1] + 1 : 2)
-
-		// OLD NOTE: if you try to console log these, don't forget that logging a reference to an array may not provide the same result as logging a slice() snapshot of that array at that exact moment. The following DOES in fact include the latest assistant message.
-		return updatedMessages
+		
+		// We need deep copies to avoid modifying the originals
+		const systemMessage = cloneDeep(messages[0]); // The first message (system/task)
+		
+		// Find the most recent assistant and user messages
+		let latestAssistantMessage: Anthropic.Messages.MessageParam | null = null;
+		let latestUserMessage: Anthropic.Messages.MessageParam | null = null;
+		
+		// Start from the end and find the latest messages of each type
+		for (let i = messages.length - 1; i >= 0; i--) {
+			const message = messages[i];
+			if (message.role === "assistant" && !latestAssistantMessage) {
+				latestAssistantMessage = cloneDeep(message);
+			} else if (message.role === "user" && !latestUserMessage && i !== 0) {
+				// Skip the first user message (system prompt)
+				latestUserMessage = cloneDeep(message);
+			}
+			
+			// Break once we have found both
+			if (latestAssistantMessage && latestUserMessage) {
+				break;
+			}
+		}
+		
+		// Construct the minimal message array
+		const result: Anthropic.Messages.MessageParam[] = [systemMessage];
+		
+		// Add assistant and user messages if they exist
+		if (latestAssistantMessage) {
+			result.push(latestAssistantMessage);
+		}
+		
+		if (latestUserMessage) {
+			result.push(latestUserMessage);
+		}
+		
+		console.log("SKYLINE: Using optimized 3-message system:", 
+			`${result.length} messages, roles: ${result.map(m => m.role).join(', ')}`);
+		
+		return result;
 	}
 
 	/**

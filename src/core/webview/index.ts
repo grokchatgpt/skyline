@@ -14,8 +14,8 @@ https://github.com/KumarVariable/vscode-extension-sidebar-html/blob/master/src/c
 */
 
 export class WebviewProvider implements vscode.WebviewViewProvider {
-	public static readonly sideBarId = "claude-dev.SidebarProvider" // used in package.json as the view's id. This value cannot be changed due to how vscode caches views based on their id, and updating the id would break existing instances of the extension.
-	public static readonly tabPanelId = "claude-dev.TabPanelProvider"
+	public static readonly sideBarId = "skyline-dev.SidebarProvider" // used in package.json as the view's id. This value cannot be changed due to how vscode caches views based on their id, and updating the id would break existing instances of the extension.
+	public static readonly tabPanelId = "skyline-dev.TabPanelProvider"
 	private static activeInstances: Set<WebviewProvider> = new Set()
 	public view?: vscode.WebviewView | vscode.WebviewPanel
 	private disposables: vscode.Disposable[] = []
@@ -225,7 +225,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 				<link href="${codiconsUri}" rel="stylesheet" />
 				<link href="${katexCssUri}" rel="stylesheet" />
 				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src https://*.posthog.com https://*.firebaseauth.com https://*.firebaseio.com https://*.googleapis.com https://*.firebase.com; font-src ${webview.cspSource} data:; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}' 'unsafe-eval';">
-				<title>Cline</title>
+				<title>Skyline</title>
 			</head>
 			<body>
 				<noscript>You need to enable JavaScript to run this app.</noscript>
@@ -277,7 +277,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 			await axios.get(`http://${localServerUrl}`)
 		} catch (error) {
 			vscode.window.showErrorMessage(
-				"Cline: Local webview dev server is not running, HMR will not work. Please run 'npm run dev:webview' before launching the extension to enable HMR. Using bundled assets.",
+				"Skyline: Local webview dev server is not running, HMR will not work. Please run 'npm run dev:webview' before launching the extension to enable HMR. Using bundled assets.",
 			)
 
 			return this.getHtmlContent(webview)
@@ -335,7 +335,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 					<link rel="stylesheet" type="text/css" href="${stylesUri}">
 					<link href="${codiconsUri}" rel="stylesheet" />
 					<link href="${katexCssUri}" rel="stylesheet" />
-					<title>Cline</title>
+					<title>Skyline</title>
 				</head>
 				<body>
 					<div id="root"></div>

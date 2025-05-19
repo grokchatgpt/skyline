@@ -1,16 +1,95 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="92px" height="96px" viewBox="0 0 92 96" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <title>Group Copy 2</title>
-    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <g id="icon-copy" transform="translate(-34, -40)" fill="#24292F">
-            <g id="Group-Copy-2" transform="translate(34, 40.5)">
-                <g id="Group-3-Copy-4" transform="translate(0, 0)">
-                    <path d="M65.4492701,16.3 C76.3374701,16.3 85.1635558,25.16479 85.1635558,36.1 L85.1635558,42.7 L90.9027661,54.1647464 C91.4694141,55.2966923 91.4668177,56.6300535 90.8957658,57.7597839 L85.1635558,69.1 L85.1635558,75.7 C85.1635558,86.63554 76.3374701,95.5 65.4492701,95.5 L26.0206986,95.5 C15.1328272,95.5 6.30641291,86.63554 6.30641291,75.7 L6.30641291,69.1 L0.448507752,57.7954874 C-0.14693501,56.6464093 -0.149634367,55.2802504 0.441262896,54.1288283 L6.30641291,42.7 L6.30641291,36.1 C6.30641291,25.16479 15.1328272,16.3 26.0206986,16.3 L65.4492701,16.3 Z M62.9301895,22 L29.189529,22 C19.8723267,22 12.3191987,29.5552188 12.3191987,38.875 L12.3191987,44.5 L7.44288578,53.9634655 C6.84794449,55.1180686 6.85066096,56.4896598 7.45017099,57.6418974 L12.3191987,67 L12.3191987,72.625 C12.3191987,81.9450625 19.8723267,89.5 29.189529,89.5 L62.9301895,89.5 C72.2476729,89.5 79.8005198,81.9450625 79.8005198,72.625 L79.8005198,67 L84.5682187,57.6061395 C85.1432011,56.473244 85.1458141,55.1345713 84.5752587,53.9994398 L79.8005198,44.5 L79.8005198,38.875 C79.8005198,29.5552188 72.2476729,22 62.9301895,22 Z" id="Combined-Shape" fill-rule="nonzero"></path>
-                    <circle id="Oval" cx="45.7349843" cy="11" r="11"></circle>
-                </g>
-                <rect id="Rectangle-Copy" stroke="#24292F" stroke-width="8" x="31" y="44.5" width="5" height="22" rx="2.5"></rect>
-                <rect id="Rectangle-Copy-2" stroke="#24292F" stroke-width="8" x="55" y="44.5" width="5" height="22" rx="2.5"></rect>
-            </g>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="92px"
+   height="96px"
+   viewBox="0 0 92 96"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="icon_.svg"
+   inkscape:version="1.4.2 (ebf0e940, 2025-05-08)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.27083333"
+     inkscape:cx="46.153846"
+     inkscape:cy="48"
+     inkscape:window-width="896"
+     inkscape:window-height="245"
+     inkscape:window-x="0"
+     inkscape:window-y="38"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg1" />
+  <title
+     id="title1">Group Copy 2</title>
+  <g
+     id="Page-1"
+     stroke="none"
+     stroke-width="1"
+     fill="none"
+     fill-rule="evenodd"
+     transform="matrix(1,0,0,-1,0,96.5)">
+    <g
+       id="icon-copy"
+       transform="translate(-34,-40)"
+       fill="#24292f">
+      <g
+         id="Group-Copy-2"
+         transform="translate(34,40.5)">
+        <g
+           id="Group-3-Copy-4">
+          <path
+             d="m 65.44927,16.3 c 10.8882,0 19.714286,8.86479 19.714286,19.8 v 6.6 l 5.73921,11.464746 c 0.566648,1.131946 0.564052,2.465308 -0.007,3.595038 L 85.163556,69.1 v 6.6 c 0,10.93554 -8.826086,19.8 -19.714286,19.8 H 26.020699 C 15.132827,95.5 6.3064129,86.63554 6.3064129,75.7 V 69.1 L 0.44850775,57.795487 C -0.14693501,56.646409 -0.14963437,55.28025 0.4412629,54.128828 L 6.3064129,42.7 v -6.6 c 0,-10.93521 8.8264141,-19.8 19.7142861,-19.8 z M 62.930189,22 h -33.74066 c -9.317202,0 -16.87033,7.555219 -16.87033,16.875 V 44.5 L 7.4428858,53.963465 C 6.8479445,55.118069 6.850661,56.48966 7.450171,57.641897 L 12.319199,67 v 5.625 c 0,9.320063 7.553128,16.875 16.87033,16.875 h 33.74066 c 9.317484,0 16.870331,-7.554937 16.870331,-16.875 V 67 l 4.767699,-9.393861 c 0.574982,-1.132895 0.577595,-2.471568 0.007,-3.606699 L 79.80052,44.5 V 38.875 C 79.80052,29.555219 72.247673,22 62.930189,22 Z"
+             id="Combined-Shape"
+             fill-rule="nonzero" />
+          <circle
+             id="Oval"
+             cx="45.734985"
+             cy="11"
+             r="11" />
         </g>
+        <rect
+           id="Rectangle-Copy"
+           stroke="#24292f"
+           stroke-width="8"
+           x="31"
+           y="44.5"
+           width="5"
+           height="22"
+           rx="2.5" />
+        <rect
+           id="Rectangle-Copy-2"
+           stroke="#24292f"
+           stroke-width="8"
+           x="55"
+           y="44.5"
+           width="5"
+           height="22"
+           rx="2.5" />
+      </g>
     </g>
+  </g>
+  <metadata
+     id="metadata1">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:title>Group Copy 2</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
 </svg>

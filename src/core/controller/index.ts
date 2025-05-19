@@ -510,7 +510,7 @@ export class Controller {
 				const settingsFilter = message.text || ""
 				await vscode.commands.executeCommand(
 					"workbench.action.openSettings",
-					`@ext:saoudrizwan.claude-dev ${settingsFilter}`.trim(), // trim whitespace if no settings filter
+					`@ext:skyline.skyline-dev ${settingsFilter}`.trim(), // trim whitespace if no settings filter
 				)
 				break
 			}
@@ -1065,7 +1065,7 @@ export class Controller {
 	// 'Add to Cline' context menu in editor and code action
 	async addSelectedCodeToChat(code: string, filePath: string, languageId: string, diagnostics?: vscode.Diagnostic[]) {
 		// Ensure the sidebar view is visible
-		await vscode.commands.executeCommand("claude-dev.SidebarProvider.focus")
+		await vscode.commands.executeCommand("skyline-dev.SidebarProvider.focus")
 		await setTimeoutPromise(100)
 
 		// Post message to webview with the selected code
@@ -1088,7 +1088,7 @@ export class Controller {
 	// 'Add to Cline' context menu in Terminal
 	async addSelectedTerminalOutputToChat(output: string, terminalName: string) {
 		// Ensure the sidebar view is visible
-		await vscode.commands.executeCommand("claude-dev.SidebarProvider.focus")
+		await vscode.commands.executeCommand("skyline-dev.SidebarProvider.focus")
 		await setTimeoutPromise(100)
 
 		// Post message to webview with the selected terminal output
@@ -1109,7 +1109,7 @@ export class Controller {
 	// 'Fix with Cline' in code actions
 	async fixWithCline(code: string, filePath: string, languageId: string, diagnostics: vscode.Diagnostic[]) {
 		// Ensure the sidebar view is visible
-		await vscode.commands.executeCommand("claude-dev.SidebarProvider.focus")
+		await vscode.commands.executeCommand("skyline-dev.SidebarProvider.focus")
 		await setTimeoutPromise(100)
 
 		const fileMention = this.getFileMentionFromPath(filePath)
