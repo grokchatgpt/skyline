@@ -8,12 +8,12 @@ const HomeHeader = () => {
 				<ClineLogoVariable className="size-16" />
 			</div>
 			<div className="text-center flex items-center justify-center">
-				<h2 className="m-0 text-[var(--vscode-font-size)]">{"*"}</h2>
+				<h2 className="m-0 text-[var(--vscode-font-size)]">{"Super...man"}</h2>
 				<HeroTooltip
 					placement="bottom"
 					className="max-w-[300px]"
 					content={
-						"why look at this?"
+						"Shout out to a real one. The first beast of AI, the Iron Giant."
 					}>
 					<span
 						className="codicon codicon-info ml-2 cursor-pointer"
