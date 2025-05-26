@@ -254,46 +254,48 @@ export class ContextManager {
 		if (messages.length <= 1) {
 			return messages
 		}
-		
+
 		// We need deep copies to avoid modifying the originals
-		const systemMessage = cloneDeep(messages[0]); // The first message (system/task)
-		
+		const systemMessage = cloneDeep(messages[0]) // The first message (system/task)
+
 		// Find the most recent assistant and user messages
-		let latestAssistantMessage: Anthropic.Messages.MessageParam | null = null;
-		let latestUserMessage: Anthropic.Messages.MessageParam | null = null;
-		
+		let latestAssistantMessage: Anthropic.Messages.MessageParam | null = null
+		let latestUserMessage: Anthropic.Messages.MessageParam | null = null
+
 		// Start from the end and find the latest messages of each type
 		for (let i = messages.length - 1; i >= 0; i--) {
-			const message = messages[i];
+			const message = messages[i]
 			if (message.role === "assistant" && !latestAssistantMessage) {
-				latestAssistantMessage = cloneDeep(message);
+				latestAssistantMessage = cloneDeep(message)
 			} else if (message.role === "user" && !latestUserMessage && i !== 0) {
 				// Skip the first user message (system prompt)
-				latestUserMessage = cloneDeep(message);
+				latestUserMessage = cloneDeep(message)
 			}
-			
+
 			// Break once we have found both
 			if (latestAssistantMessage && latestUserMessage) {
-				break;
+				break
 			}
 		}
-		
+
 		// Construct the minimal message array
-		const result: Anthropic.Messages.MessageParam[] = [systemMessage];
-		
+		const result: Anthropic.Messages.MessageParam[] = [systemMessage]
+
 		// Add assistant and user messages if they exist
 		if (latestAssistantMessage) {
-			result.push(latestAssistantMessage);
+			result.push(latestAssistantMessage)
 		}
-		
+
 		if (latestUserMessage) {
-			result.push(latestUserMessage);
+			result.push(latestUserMessage)
 		}
-		
-		console.log("SKYLINE: Using optimized 3-message system:", 
-			`${result.length} messages, roles: ${result.map(m => m.role).join(', ')}`);
-		
-		return result;
+
+		console.log(
+			"SKYLINE: Using optimized 3-message system:",
+			`${result.length} messages, roles: ${result.map((m) => m.role).join(", ")}`,
+		)
+
+		return result
 	}
 
 	/**

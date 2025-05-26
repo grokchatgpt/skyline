@@ -565,7 +565,7 @@ export const openAiModelInfoSaneDefaults: OpenAiCompatibleModelInfo = {
 	maxTokens: -1,
 	contextWindow: 128_000,
 	supportsImages: true,
-	supportsPromptCache: false,
+	supportsPromptCache: true,
 	isR1FormatRequired: false,
 	inputPrice: 0,
 	outputPrice: 0,
