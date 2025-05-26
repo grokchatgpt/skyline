@@ -1,6 +1,6 @@
 export type SecretKey =
 	| "apiKey"
-	| "clineApiKey"
+	| "skylineApiKey"
 	| "openRouterApiKey"
 	| "awsAccessKey"
 	| "awsSecretKey"
@@ -53,7 +53,7 @@ export type GlobalStateKey =
 	| "openRouterModelInfo"
 	| "openRouterProviderSorting"
 	| "autoApprovalSettings"
-	| "globalClineRulesToggles"
+	| "globalskylineRulesToggles"
 	| "browserSettings"
 	| "chatSettings"
 	| "vsCodeLmModelSelector"
@@ -90,4 +90,4 @@ export type GlobalStateKey =
 	| "shellIntegrationTimeout"
 	| "isNewUser"
 
-export type LocalStateKey = "localClineRulesToggles"
+export type LocalStateKey = "localskylineRulesToggles"

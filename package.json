@@ -1,7 +1,7 @@
 {
 	"name": "skyline-dev",
 	"displayName": "Skyline",
-	"description": "Modified version of Cline that uses an optimized 3-message conversation system for Skynet",
+	"description": "Modified version of skyline that uses an optimized 3-message conversation system for Skynet",
 	"version": "3.16.0",
 	"icon": "assets/icons/icon.png",
 	"engines": {
@@ -14,7 +14,7 @@
 	"publisher": "skyline",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/cline/cline"
+		"url": "https://github.com/skyline/skyline"
 	},
 	"homepage": "https://skynet.bot",
 	"categories": [

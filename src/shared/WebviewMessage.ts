@@ -18,7 +18,7 @@ export interface WebviewMessage {
 		| "openInBrowser"
 		| "openMention"
 		| "showChatView"
-		| "refreshClineRules"
+		| "refreshskylineRules"
 		| "openMcpSettings"
 		| "restartMcpServer"
 		| "deleteMcpServer"
@@ -50,11 +50,11 @@ export interface WebviewMessage {
 		| "searchFiles"
 		| "grpc_request"
 		| "grpc_request_cancel"
-		| "toggleClineRule"
+		| "toggleskylineRule"
 		| "toggleCursorRule"
 		| "toggleWindsurfRule"
 		| "toggleWorkflow"
-		| "deleteClineRule"
+		| "deleteskylineRule"
 		| "copyToClipboard"
 		| "updateTerminalConnectionTimeout"
 		| "setActiveQuote"
@@ -103,7 +103,7 @@ export interface WebviewMessage {
 	grpc_request_cancel?: {
 		request_id: string // ID of the request to cancel
 	}
-	// For cline rules and workflows
+	// For skyline rules and workflows
 	isGlobal?: boolean
 	rulePath?: string
 	workflowPath?: string
@@ -114,8 +114,8 @@ export interface WebviewMessage {
 	shellIntegrationTimeout?: number
 }
 
-export type ClineAskResponse = "yesButtonClicked" | "noButtonClicked" | "messageResponse"
+export type skylineAskResponse = "yesButtonClicked" | "noButtonClicked" | "messageResponse"
 
-export type ClineCheckpointRestore = "task" | "workspace" | "taskAndWorkspace"
+export type skylineCheckpointRestore = "task" | "workspace" | "taskAndWorkspace"
 
 export type TaskFeedbackType = "thumbs_up" | "thumbs_down"

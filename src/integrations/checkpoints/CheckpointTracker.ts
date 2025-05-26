@@ -9,7 +9,7 @@ import { getShadowGitPath, getWorkingDirectory, hashWorkingDir } from "./Checkpo
 /**
  * CheckpointTracker Module
  *
- * Core implementation of Cline's Checkpoints system that provides version control
+ * Core implementation of skyline's Checkpoints system that provides version control
  * capabilities without interfering with the user's main Git repository. Key features:
  *
  * Shadow Git Repository:
@@ -88,7 +88,7 @@ class CheckpointTracker {
 	 * - Creates/initializes shadow git repository
 	 *
 	 * Configuration:
-	 * - Respects 'cline.enableCheckpoints' VS Code setting
+	 * - Respects 'skyline.enableCheckpoints' VS Code setting
 	 */
 	public static async create(
 		taskId: string,

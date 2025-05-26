@@ -12,7 +12,7 @@ import * as vscode from "vscode"
 import { Logger } from "@services/logging/Logger"
 import { ApiHandler, buildApiHandler } from "@api/index"
 import { AnthropicHandler } from "@api/providers/anthropic"
-import { ClineHandler } from "@api/providers/cline"
+import { skylineHandler } from "@api/providers/skyline"
 import { OpenRouterHandler } from "@api/providers/openrouter"
 import { ApiStream } from "@api/transform/stream"
 import CheckpointTracker from "@integrations/checkpoints/CheckpointTracker"
@@ -38,23 +38,23 @@ import {
 	BrowserAction,
 	BrowserActionResult,
 	browserActions,
-	ClineApiReqCancelReason,
-	ClineApiReqInfo,
-	ClineAsk,
-	ClineAskQuestion,
-	ClineAskUseMcpServer,
-	ClineMessage,
-	ClinePlanModeResponse,
-	ClineSay,
-	ClineSayBrowserAction,
-	ClineSayTool,
+	skylineApiReqCancelReason,
+	skylineApiReqInfo,
+	skylineAsk,
+	skylineAskQuestion,
+	skylineAskUseMcpServer,
+	skylineMessage,
+	skylinePlanModeResponse,
+	skylineSay,
+	skylineSayBrowserAction,
+	skylineSayTool,
 	COMPLETION_RESULT_CHANGES_FLAG,
 	ExtensionMessage,
 } from "@shared/ExtensionMessage"
 import { getApiMetrics } from "@shared/getApiMetrics"
 import { HistoryItem } from "@shared/HistoryItem"
 import { DEFAULT_LANGUAGE_SETTINGS, getLanguageKey, LanguageDisplay } from "@shared/Languages"
-import { ClineAskResponse, ClineCheckpointRestore } from "@shared/WebviewMessage"
+import { skylineAskResponse, skylineCheckpointRestore } from "@shared/WebviewMessage"
 import { calculateApiCostAnthropic } from "@utils/cost"
 import { fileExistsAtPath } from "@utils/fs"
 import { createAndOpenGitHubIssue } from "@utils/github-url-utils"
@@ -62,7 +62,7 @@ import { arePathsEqual, getReadablePath, isLocatedInWorkspace } from "@utils/pat
 import { fixModelHtmlEscaping, removeInvalidChars } from "@utils/string"
 import { AssistantMessageContent, parseAssistantMessageV2, ToolParamName, ToolUseName } from "@core/assistant-message"
 import { constructNewFileContent } from "@core/assistant-message/diff"
-import { ClineIgnoreController } from "@core/ignore/ClineIgnoreController"
+import { skylineIgnoreController } from "@core/ignore/skylineIgnoreController"
 import { parseMentions } from "@core/mentions"
 import { formatResponse } from "@core/prompts/responses"
 import { addUserInstructions, SYSTEM_PROMPT } from "@core/prompts/system"
@@ -79,17 +79,17 @@ import {
 	ensureRulesDirectoryExists,
 	ensureTaskDirectoryExists,
 	getSavedApiConversationHistory,
-	getSavedClineMessages,
+	getSavedskylineMessages,
 	GlobalFileNames,
 	saveApiConversationHistory,
-	saveClineMessages,
+	saveskylineMessages,
 } from "@core/storage/disk"
 import {
-	getGlobalClineRules,
-	getLocalClineRules,
-	refreshClineRulesToggles,
-} from "@core/context/instructions/user-instructions/cline-rules"
-import { ensureLocalClineDirExists } from "../context/instructions/user-instructions/rule-helpers"
+	getGlobalskylineRules,
+	getLocalskylineRules,
+	refreshskylineRulesToggles,
+} from "@core/context/instructions/user-instructions/skyline-rules"
+import { ensureLocalskylineDirExists } from "../context/instructions/user-instructions/rule-helpers"
 import {
 	refreshExternalRulesToggles,
 	getLocalWindsurfRules,
@@ -133,9 +133,9 @@ export class Task {
 	browserSettings: BrowserSettings
 	chatSettings: ChatSettings
 	apiConversationHistory: Anthropic.MessageParam[] = []
-	clineMessages: ClineMessage[] = []
-	private clineIgnoreController: ClineIgnoreController
-	private askResponse?: ClineAskResponse
+	skylineMessages: skylineMessage[] = []
+	private skylineIgnoreController: skylineIgnoreController
+	private askResponse?: skylineAskResponse
 	private askResponseText?: string
 	private askResponseImages?: string[]
 	private lastMessageTs?: number
@@ -199,7 +199,7 @@ export class Task {
 		this.postMessageToWebview = postMessageToWebview
 		this.reinitExistingTaskFromId = reinitExistingTaskFromId
 		this.cancelTask = cancelTask
-		this.clineIgnoreController = new ClineIgnoreController(cwd)
+		this.skylineIgnoreController = new skylineIgnoreController(cwd)
 		// Initialization moved to startTask/resumeTaskFromHistory
 		this.terminalManager = new TerminalManager()
 		this.terminalManager.setShellIntegrationTimeout(shellIntegrationTimeout)
@@ -282,30 +282,30 @@ export class Task {
 		await saveApiConversationHistory(this.getContext(), this.taskId, this.apiConversationHistory)
 	}
 
-	private async addToClineMessages(message: ClineMessage) {
-		// these values allow us to reconstruct the conversation history at the time this cline message was created
-		// it's important that apiConversationHistory is initialized before we add cline messages
-		message.conversationHistoryIndex = this.apiConversationHistory.length - 1 // NOTE: this is the index of the last added message which is the user message, and once the clinemessages have been presented we update the apiconversationhistory with the completed assistant message. This means when resetting to a message, we need to +1 this index to get the correct assistant message that this tool use corresponds to
+	private async addToskylineMessages(message: skylineMessage) {
+		// these values allow us to reconstruct the conversation history at the time this skyline message was created
+		// it's important that apiConversationHistory is initialized before we add skyline messages
+		message.conversationHistoryIndex = this.apiConversationHistory.length - 1 // NOTE: this is the index of the last added message which is the user message, and once the skylinemessages have been presented we update the apiconversationhistory with the completed assistant message. This means when resetting to a message, we need to +1 this index to get the correct assistant message that this tool use corresponds to
 		message.conversationHistoryDeletedRange = this.conversationHistoryDeletedRange
-		this.clineMessages.push(message)
-		await this.saveClineMessagesAndUpdateHistory()
+		this.skylineMessages.push(message)
+		await this.saveskylineMessagesAndUpdateHistory()
 	}
 
-	private async overwriteClineMessages(newMessages: ClineMessage[]) {
-		this.clineMessages = newMessages
-		await this.saveClineMessagesAndUpdateHistory()
+	private async overwriteskylineMessages(newMessages: skylineMessage[]) {
+		this.skylineMessages = newMessages
+		await this.saveskylineMessagesAndUpdateHistory()
 	}
 
-	private async saveClineMessagesAndUpdateHistory() {
+	private async saveskylineMessagesAndUpdateHistory() {
 		try {
-			await saveClineMessages(this.getContext(), this.taskId, this.clineMessages)
+			await saveskylineMessages(this.getContext(), this.taskId, this.skylineMessages)
 
 			// combined as they are in ChatView
-			const apiMetrics = getApiMetrics(combineApiRequests(combineCommandSequences(this.clineMessages.slice(1))))
-			const taskMessage = this.clineMessages[0] // first message is always the task say
+			const apiMetrics = getApiMetrics(combineApiRequests(combineCommandSequences(this.skylineMessages.slice(1))))
+			const taskMessage = this.skylineMessages[0] // first message is always the task say
 			const lastRelevantMessage =
-				this.clineMessages[
-					findLastIndex(this.clineMessages, (m) => !(m.ask === "resume_task" || m.ask === "resume_completed_task"))
+				this.skylineMessages[
+					findLastIndex(this.skylineMessages, (m) => !(m.ask === "resume_task" || m.ask === "resume_completed_task"))
 				]
 			const taskDir = await ensureTaskDirectoryExists(this.getContext(), this.taskId)
 			let taskDirSize = 0
@@ -332,19 +332,22 @@ export class Task {
 				isFavorited: this.taskIsFavorited,
 			})
 		} catch (error) {
-			console.error("Failed to save cline messages:", error)
+			console.error("Failed to save skyline messages:", error)
 		}
 	}
 
-	async restoreCheckpoint(messageTs: number, restoreType: ClineCheckpointRestore, offset?: number) {
-		const messageIndex = this.clineMessages.findIndex((m) => m.ts === messageTs) - (offset || 0)
+	async restoreCheckpoint(messageTs: number, restoreType: skylineCheckpointRestore, offset?: number) {
+		const messageIndex = this.skylineMessages.findIndex((m) => m.ts === messageTs) - (offset || 0)
 		// Find the last message before messageIndex that has a lastCheckpointHash
-		const lastHashIndex = findLastIndex(this.clineMessages.slice(0, messageIndex), (m) => m.lastCheckpointHash !== undefined)
-		const message = this.clineMessages[messageIndex]
-		const lastMessageWithHash = this.clineMessages[lastHashIndex]
+		const lastHashIndex = findLastIndex(
+			this.skylineMessages.slice(0, messageIndex),
+			(m) => m.lastCheckpointHash !== undefined,
+		)
+		const message = this.skylineMessages[messageIndex]
+		const lastMessageWithHash = this.skylineMessages[lastHashIndex]
 
 		if (!message) {
-			console.error("Message not found", this.clineMessages)
+			console.error("Message not found", this.skylineMessages)
 			return
 		}
 
@@ -415,11 +418,11 @@ export class Task {
 					)
 
 					// aggregate deleted api reqs info so we don't lose costs/tokens
-					const deletedMessages = this.clineMessages.slice(messageIndex + 1)
+					const deletedMessages = this.skylineMessages.slice(messageIndex + 1)
 					const deletedApiReqsMetrics = getApiMetrics(combineApiRequests(combineCommandSequences(deletedMessages)))
 
-					const newClineMessages = this.clineMessages.slice(0, messageIndex + 1)
-					await this.overwriteClineMessages(newClineMessages) // calls saveClineMessages which saves historyItem
+					const newskylineMessages = this.skylineMessages.slice(0, messageIndex + 1)
+					await this.overwriteskylineMessages(newskylineMessages) // calls saveskylineMessages which saves historyItem
 
 					await this.say(
 						"deleted_api_reqs",
@@ -429,7 +432,7 @@ export class Task {
 							cacheWrites: deletedApiReqsMetrics.totalCacheWrites,
 							cacheReads: deletedApiReqsMetrics.totalCacheReads,
 							cost: deletedApiReqsMetrics.totalCost,
-						} satisfies ClineApiReqInfo),
+						} satisfies skylineApiReqInfo),
 					)
 					break
 				case "workspace":
@@ -451,7 +454,7 @@ export class Task {
 			if (restoreType !== "task") {
 				// Set isCheckpointCheckedOut flag on the message
 				// Find all checkpoint messages before this one
-				const checkpointMessages = this.clineMessages.filter((m) => m.say === "checkpoint_created")
+				const checkpointMessages = this.skylineMessages.filter((m) => m.say === "checkpoint_created")
 				const currentMessageIndex = checkpointMessages.findIndex((m) => m.ts === messageTs)
 
 				// Set isCheckpointCheckedOut to false for all checkpoint messages
@@ -460,7 +463,7 @@ export class Task {
 				})
 			}
 
-			await this.saveClineMessagesAndUpdateHistory()
+			await this.saveskylineMessagesAndUpdateHistory()
 
 			await this.postMessageToWebview({ type: "relinquishControl" })
 
@@ -481,8 +484,8 @@ export class Task {
 		}
 
 		console.log("presentMultifileDiff", messageTs)
-		const messageIndex = this.clineMessages.findIndex((m) => m.ts === messageTs)
-		const message = this.clineMessages[messageIndex]
+		const messageIndex = this.skylineMessages.findIndex((m) => m.ts === messageTs)
+		const message = this.skylineMessages[messageIndex]
 		if (!message) {
 			console.error("Message not found")
 			relinquishButton()
@@ -527,7 +530,7 @@ export class Task {
 			if (seeNewChangesSinceLastTaskCompletion) {
 				// Get last task completed
 				const lastTaskCompletedMessageCheckpointHash = findLast(
-					this.clineMessages.slice(0, messageIndex),
+					this.skylineMessages.slice(0, messageIndex),
 					(m) => m.say === "completion_result",
 				)?.lastCheckpointHash // ask is only used to relinquish control, its the last say we care about
 				// if undefined, then we get diff from beginning of git
@@ -536,7 +539,7 @@ export class Task {
 				// 	return
 				// }
 				// This value *should* always exist
-				const firstCheckpointMessageCheckpointHash = this.clineMessages.find(
+				const firstCheckpointMessageCheckpointHash = this.skylineMessages.find(
 					(m) => m.say === "checkpoint_created",
 				)?.lastCheckpointHash
 
@@ -604,8 +607,8 @@ export class Task {
 			return false
 		}
 
-		const messageIndex = findLastIndex(this.clineMessages, (m) => m.say === "completion_result")
-		const message = this.clineMessages[messageIndex]
+		const messageIndex = findLastIndex(this.skylineMessages, (m) => m.say === "completion_result")
+		const message = this.skylineMessages[messageIndex]
 		if (!message) {
 			console.error("Completion message not found")
 			return false
@@ -631,7 +634,10 @@ export class Task {
 		}
 
 		// Get last task completed
-		const lastTaskCompletedMessage = findLast(this.clineMessages.slice(0, messageIndex), (m) => m.say === "completion_result")
+		const lastTaskCompletedMessage = findLast(
+			this.skylineMessages.slice(0, messageIndex),
+			(m) => m.say === "completion_result",
+		)
 
 		try {
 			// Get last task completed
@@ -642,7 +648,7 @@ export class Task {
 			// 	return
 			// }
 			// This value *should* always exist
-			const firstCheckpointMessageCheckpointHash = this.clineMessages.find(
+			const firstCheckpointMessageCheckpointHash = this.skylineMessages.find(
 				(m) => m.say === "checkpoint_created",
 			)?.lastCheckpointHash
 
@@ -669,21 +675,21 @@ export class Task {
 
 	// partial has three valid states true (partial message), false (completion of partial message), undefined (individual complete message)
 	async ask(
-		type: ClineAsk,
+		type: skylineAsk,
 		text?: string,
 		partial?: boolean,
 	): Promise<{
-		response: ClineAskResponse
+		response: skylineAskResponse
 		text?: string
 		images?: string[]
 	}> {
-		// If this Cline instance was aborted by the provider, then the only thing keeping us alive is a promise still running in the background, in which case we don't want to send its result to the webview as it is attached to a new instance of Cline now. So we can safely ignore the result of any active promises, and this class will be deallocated. (Although we set Cline = undefined in provider, that simply removes the reference to this instance, but the instance is still alive until this promise resolves or rejects.)
+		// If this skyline instance was aborted by the provider, then the only thing keeping us alive is a promise still running in the background, in which case we don't want to send its result to the webview as it is attached to a new instance of skyline now. So we can safely ignore the result of any active promises, and this class will be deallocated. (Although we set skyline = undefined in provider, that simply removes the reference to this instance, but the instance is still alive until this promise resolves or rejects.)
 		if (this.abort) {
-			throw new Error("Cline instance aborted")
+			throw new Error("skyline instance aborted")
 		}
 		let askTs: number
 		if (partial !== undefined) {
-			const lastMessage = this.clineMessages.at(-1)
+			const lastMessage = this.skylineMessages.at(-1)
 			const isUpdatingPreviousPartial =
 				lastMessage && lastMessage.partial && lastMessage.type === "ask" && lastMessage.ask === type
 			if (partial) {
@@ -692,7 +698,7 @@ export class Task {
 					lastMessage.text = text
 					lastMessage.partial = partial
 					// todo be more efficient about saving and posting only new data or one whole message at a time so ignore partial for saves, and only post parts of partial message instead of whole array in new listener
-					// await this.saveClineMessagesAndUpdateHistory()
+					// await this.saveskylineMessagesAndUpdateHistory()
 					// await this.postStateToWebview()
 					await this.postMessageToWebview({
 						type: "partialMessage",
@@ -706,7 +712,7 @@ export class Task {
 					// this.askResponseImages = undefined
 					askTs = Date.now()
 					this.lastMessageTs = askTs
-					await this.addToClineMessages({
+					await this.addToskylineMessages({
 						ts: askTs,
 						type: "ask",
 						ask: type,
@@ -735,7 +741,7 @@ export class Task {
 					// lastMessage.ts = askTs
 					lastMessage.text = text
 					lastMessage.partial = false
-					await this.saveClineMessagesAndUpdateHistory()
+					await this.saveskylineMessagesAndUpdateHistory()
 					// await this.postStateToWebview()
 					await this.postMessageToWebview({
 						type: "partialMessage",
@@ -748,7 +754,7 @@ export class Task {
 					this.askResponseImages = undefined
 					askTs = Date.now()
 					this.lastMessageTs = askTs
-					await this.addToClineMessages({
+					await this.addToskylineMessages({
 						ts: askTs,
 						type: "ask",
 						ask: type,
@@ -759,13 +765,13 @@ export class Task {
 			}
 		} else {
 			// this is a new non-partial message, so add it like normal
-			// const lastMessage = this.clineMessages.at(-1)
+			// const lastMessage = this.skylineMessages.at(-1)
 			this.askResponse = undefined
 			this.askResponseText = undefined
 			this.askResponseImages = undefined
 			askTs = Date.now()
 			this.lastMessageTs = askTs
-			await this.addToClineMessages({
+			await this.addToskylineMessages({
 				ts: askTs,
 				type: "ask",
 				ask: type,
@@ -789,19 +795,19 @@ export class Task {
 		return result
 	}
 
-	async handleWebviewAskResponse(askResponse: ClineAskResponse, text?: string, images?: string[]) {
+	async handleWebviewAskResponse(askResponse: skylineAskResponse, text?: string, images?: string[]) {
 		this.askResponse = askResponse
 		this.askResponseText = text
 		this.askResponseImages = images
 	}
 
-	async say(type: ClineSay, text?: string, images?: string[], partial?: boolean): Promise<undefined> {
+	async say(type: skylineSay, text?: string, images?: string[], partial?: boolean): Promise<undefined> {
 		if (this.abort) {
-			throw new Error("Cline instance aborted")
+			throw new Error("skyline instance aborted")
 		}
 
 		if (partial !== undefined) {
-			const lastMessage = this.clineMessages.at(-1)
+			const lastMessage = this.skylineMessages.at(-1)
 			const isUpdatingPreviousPartial =
 				lastMessage && lastMessage.partial && lastMessage.type === "say" && lastMessage.say === type
 			if (partial) {
@@ -818,7 +824,7 @@ export class Task {
 					// this is a new partial message, so add it with partial state
 					const sayTs = Date.now()
 					this.lastMessageTs = sayTs
-					await this.addToClineMessages({
+					await this.addToskylineMessages({
 						ts: sayTs,
 						type: "say",
 						say: type,
@@ -839,7 +845,7 @@ export class Task {
 					lastMessage.partial = false
 
 					// instead of streaming partialMessage events, we do a save and post like normal to persist to disk
-					await this.saveClineMessagesAndUpdateHistory()
+					await this.saveskylineMessagesAndUpdateHistory()
 					// await this.postStateToWebview()
 					await this.postMessageToWebview({
 						type: "partialMessage",
@@ -849,7 +855,7 @@ export class Task {
 					// this is a new partial=false message, so add it like normal
 					const sayTs = Date.now()
 					this.lastMessageTs = sayTs
-					await this.addToClineMessages({
+					await this.addToskylineMessages({
 						ts: sayTs,
 						type: "say",
 						say: type,
@@ -863,7 +869,7 @@ export class Task {
 			// this is a new non-partial message, so add it like normal
 			const sayTs = Date.now()
 			this.lastMessageTs = sayTs
-			await this.addToClineMessages({
+			await this.addToskylineMessages({
 				ts: sayTs,
 				type: "say",
 				say: type,
@@ -877,18 +883,18 @@ export class Task {
 	async sayAndCreateMissingParamError(toolName: ToolUseName, paramName: string, relPath?: string) {
 		await this.say(
 			"error",
-			`Cline tried to use ${toolName}${
+			`skyline tried to use ${toolName}${
 				relPath ? ` for '${relPath.toPosix()}'` : ""
 			} without value for required parameter '${paramName}'. Retrying...`,
 		)
 		return formatResponse.toolError(formatResponse.missingToolParameterError(paramName))
 	}
 
-	async removeLastPartialMessageIfExistsWithType(type: "ask" | "say", askOrSay: ClineAsk | ClineSay) {
-		const lastMessage = this.clineMessages.at(-1)
+	async removeLastPartialMessageIfExistsWithType(type: "ask" | "say", askOrSay: skylineAsk | skylineSay) {
+		const lastMessage = this.skylineMessages.at(-1)
 		if (lastMessage?.partial && lastMessage.type === type && (lastMessage.ask === askOrSay || lastMessage.say === askOrSay)) {
-			this.clineMessages.pop()
-			await this.saveClineMessagesAndUpdateHistory()
+			this.skylineMessages.pop()
+			await this.saveskylineMessagesAndUpdateHistory()
 			await this.postStateToWebview()
 		}
 	}
@@ -897,14 +903,14 @@ export class Task {
 
 	private async startTask(task?: string, images?: string[]): Promise<void> {
 		try {
-			await this.clineIgnoreController.initialize()
+			await this.skylineIgnoreController.initialize()
 		} catch (error) {
-			console.error("Failed to initialize ClineIgnoreController:", error)
+			console.error("Failed to initialize skylineIgnoreController:", error)
 			// Optionally, inform the user or handle the error appropriately
 		}
-		// conversationHistory (for API) and clineMessages (for webview) need to be in sync
-		// if the extension process were killed, then on restart the clineMessages might not be empty, so we need to set it to [] when we create a new Cline client (otherwise webview would show stale messages from previous session)
-		this.clineMessages = []
+		// conversationHistory (for API) and skylineMessages (for webview) need to be in sync
+		// if the extension process were killed, then on restart the skylineMessages might not be empty, so we need to set it to [] when we create a new skyline client (otherwise webview would show stale messages from previous session)
+		this.skylineMessages = []
 		this.apiConversationHistory = []
 
 		await this.postStateToWebview()
@@ -925,9 +931,9 @@ export class Task {
 
 	private async resumeTaskFromHistory() {
 		try {
-			await this.clineIgnoreController.initialize()
+			await this.skylineIgnoreController.initialize()
 		} catch (error) {
-			console.error("Failed to initialize ClineIgnoreController:", error)
+			console.error("Failed to initialize skylineIgnoreController:", error)
 			// Optionally, inform the user or handle the error appropriately
 		}
 		// UPDATE: we don't need this anymore since most tasks are now created with checkpoints enabled
@@ -937,47 +943,47 @@ export class Task {
 		// 	this.checkpointTrackerErrorMessage = "Checkpoints are only available for new tasks"
 		// }
 
-		const modifiedClineMessages = await getSavedClineMessages(this.getContext(), this.taskId)
+		const modifiedskylineMessages = await getSavedskylineMessages(this.getContext(), this.taskId)
 
 		// Remove any resume messages that may have been added before
 		const lastRelevantMessageIndex = findLastIndex(
-			modifiedClineMessages,
+			modifiedskylineMessages,
 			(m) => !(m.ask === "resume_task" || m.ask === "resume_completed_task"),
 		)
 		if (lastRelevantMessageIndex !== -1) {
-			modifiedClineMessages.splice(lastRelevantMessageIndex + 1)
+			modifiedskylineMessages.splice(lastRelevantMessageIndex + 1)
 		}
 
 		// since we don't use api_req_finished anymore, we need to check if the last api_req_started has a cost value, if it doesn't and no cancellation reason to present, then we remove it since it indicates an api request without any partial content streamed
 		const lastApiReqStartedIndex = findLastIndex(
-			modifiedClineMessages,
+			modifiedskylineMessages,
 			(m) => m.type === "say" && m.say === "api_req_started",
 		)
 		if (lastApiReqStartedIndex !== -1) {
-			const lastApiReqStarted = modifiedClineMessages[lastApiReqStartedIndex]
-			const { cost, cancelReason }: ClineApiReqInfo = JSON.parse(lastApiReqStarted.text || "{}")
+			const lastApiReqStarted = modifiedskylineMessages[lastApiReqStartedIndex]
+			const { cost, cancelReason }: skylineApiReqInfo = JSON.parse(lastApiReqStarted.text || "{}")
 			if (cost === undefined && cancelReason === undefined) {
-				modifiedClineMessages.splice(lastApiReqStartedIndex, 1)
+				modifiedskylineMessages.splice(lastApiReqStartedIndex, 1)
 			}
 		}
 
-		await this.overwriteClineMessages(modifiedClineMessages)
-		this.clineMessages = await getSavedClineMessages(this.getContext(), this.taskId)
+		await this.overwriteskylineMessages(modifiedskylineMessages)
+		this.skylineMessages = await getSavedskylineMessages(this.getContext(), this.taskId)
 
-		// Now present the cline messages to the user and ask if they want to resume (NOTE: we ran into a bug before where the apiconversationhistory wouldn't be initialized when opening a old task, and it was because we were waiting for resume)
+		// Now present the skyline messages to the user and ask if they want to resume (NOTE: we ran into a bug before where the apiconversationhistory wouldn't be initialized when opening a old task, and it was because we were waiting for resume)
 		// This is important in case the user deletes messages without resuming the task first
 		this.apiConversationHistory = await getSavedApiConversationHistory(this.getContext(), this.taskId)
 
 		// load the context history state
 		await this.contextManager.initializeContextHistory(await ensureTaskDirectoryExists(this.getContext(), this.taskId))
 
-		const lastClineMessage = this.clineMessages
+		const lastskylineMessage = this.skylineMessages
 			.slice()
 			.reverse()
 			.find((m) => !(m.ask === "resume_task" || m.ask === "resume_completed_task")) // could be multiple resume tasks
 
-		let askType: ClineAsk
-		if (lastClineMessage?.ask === "completion_result") {
+		let askType: skylineAsk
+		if (lastskylineMessage?.ask === "completion_result") {
 			askType = "resume_completed_task"
 		} else {
 			askType = "resume_task"
@@ -995,7 +1001,7 @@ export class Task {
 			responseImages = images
 		}
 
-		// need to make sure that the api conversation history can be resumed by the api, even if it goes out of sync with cline messages
+		// need to make sure that the api conversation history can be resumed by the api, even if it goes out of sync with skyline messages
 
 		const existingApiConversationHistory: Anthropic.Messages.MessageParam[] = await getSavedApiConversationHistory(
 			this.getContext(),
@@ -1026,7 +1032,7 @@ export class Task {
 		let newUserContent: UserContent = [...modifiedOldUserContent]
 
 		const agoText = (() => {
-			const timestamp = lastClineMessage?.ts ?? Date.now()
+			const timestamp = lastskylineMessage?.ts ?? Date.now()
 			const now = Date.now()
 			const diff = now - timestamp
 			const minutes = Math.floor(diff / 60000)
@@ -1045,7 +1051,7 @@ export class Task {
 			return "just now"
 		})()
 
-		const wasRecent = lastClineMessage?.ts && Date.now() - lastClineMessage.ts < 30_000
+		const wasRecent = lastskylineMessage?.ts && Date.now() - lastskylineMessage.ts < 30_000
 
 		const [taskResumptionMessage, userResponseMessage] = formatResponse.taskResumption(
 			this.chatSettings?.mode === "plan" ? "plan" : "act",
@@ -1081,11 +1087,11 @@ export class Task {
 		let nextUserContent = userContent
 		let includeFileDetails = true
 		while (!this.abort) {
-			const didEndLoop = await this.recursivelyMakeClineRequests(nextUserContent, includeFileDetails)
+			const didEndLoop = await this.recursivelyMakeskylineRequests(nextUserContent, includeFileDetails)
 			includeFileDetails = false // we only need file details the first time
 
-			//  The way this agentic loop works is that cline will be given a task that he then calls tools to complete. unless there's an attempt_completion call, we keep responding back to him with his tool's responses until he either attempt_completion or does not use anymore tools. If he does not use anymore tools, we ask him to consider if he's completed the task and then call attempt_completion, otherwise proceed with completing the task.
-			// There is a MAX_REQUESTS_PER_TASK limit to prevent infinite requests, but Cline is prompted to finish the task as efficiently as he can.
+			//  The way this agentic loop works is that skyline will be given a task that he then calls tools to complete. unless there's an attempt_completion call, we keep responding back to him with his tool's responses until he either attempt_completion or does not use anymore tools. If he does not use anymore tools, we ask him to consider if he's completed the task and then call attempt_completion, otherwise proceed with completing the task.
+			// There is a MAX_REQUESTS_PER_TASK limit to prevent infinite requests, but skyline is prompted to finish the task as efficiently as he can.
 
 			//const totalCost = this.calculateApiCost(totalInputTokens, totalOutputTokens)
 			if (didEndLoop) {
@@ -1095,7 +1101,7 @@ export class Task {
 			} else {
 				// this.say(
 				// 	"tool",
-				// 	"Cline responded with only text blocks but has not called attempt_completion yet. Forcing him to continue with task..."
+				// 	"skyline responded with only text blocks but has not called attempt_completion yet. Forcing him to continue with task..."
 				// )
 				nextUserContent = [
 					{
@@ -1113,7 +1119,7 @@ export class Task {
 		this.terminalManager.disposeAll()
 		this.urlContentFetcher.closeBrowser()
 		await this.browserSession.dispose()
-		this.clineIgnoreController.dispose()
+		this.skylineIgnoreController.dispose()
 		this.fileContextTracker.dispose()
 		await this.diffViewProvider.revertChanges() // need to await for when we want to make sure directories/files are reverted before re-starting the task from a checkpoint
 	}
@@ -1126,7 +1132,7 @@ export class Task {
 			return
 		}
 		// Set isCheckpointCheckedOut to false for all checkpoint_created messages
-		this.clineMessages.forEach((message) => {
+		this.skylineMessages.forEach((message) => {
 			if (message.say === "checkpoint_created") {
 				message.isCheckpointCheckedOut = false
 			}
@@ -1134,7 +1140,7 @@ export class Task {
 
 		if (!isAttemptCompletionMessage) {
 			// ensure we aren't creating a duplicate checkpoint
-			const lastMessage = this.clineMessages.at(-1)
+			const lastMessage = this.skylineMessages.at(-1)
 			if (lastMessage?.say === "checkpoint_created") {
 				return
 			}
@@ -1142,10 +1148,10 @@ export class Task {
 			// For non-attempt completion we just say checkpoints
 			await this.say("checkpoint_created")
 			this.checkpointTracker?.commit().then(async (commitHash) => {
-				const lastCheckpointMessage = findLast(this.clineMessages, (m) => m.say === "checkpoint_created")
+				const lastCheckpointMessage = findLast(this.skylineMessages, (m) => m.say === "checkpoint_created")
 				if (lastCheckpointMessage) {
 					lastCheckpointMessage.lastCheckpointHash = commitHash
-					await this.saveClineMessagesAndUpdateHistory()
+					await this.saveskylineMessagesAndUpdateHistory()
 				}
 			}) // silently fails for now
 
@@ -1155,12 +1161,12 @@ export class Task {
 			const commitHash = await this.checkpointTracker?.commit()
 			// For attempt_completion, find the last completion_result message and set its checkpoint hash. This will be used to present the 'see new changes' button
 			const lastCompletionResultMessage = findLast(
-				this.clineMessages,
+				this.skylineMessages,
 				(m) => m.say === "completion_result" || m.ask === "completion_result",
 			)
 			if (lastCompletionResultMessage) {
 				lastCompletionResultMessage.lastCheckpointHash = commitHash
-				await this.saveClineMessagesAndUpdateHistory()
+				await this.saveskylineMessagesAndUpdateHistory()
 			}
 		}
 
@@ -1168,8 +1174,8 @@ export class Task {
 
 		// Previously we checkpointed every message, but this is excessive and unnecessary.
 		// // Start from the end and work backwards until we find a tool use or another message with a hash
-		// for (let i = this.clineMessages.length - 1; i >= 0; i--) {
-		// 	const message = this.clineMessages[i]
+		// for (let i = this.skylineMessages.length - 1; i >= 0; i--) {
+		// 	const message = this.skylineMessages[i]
 		// 	if (message.lastCheckpointHash) {
 		// 		// Found a message with a hash, so we can stop
 		// 		break
@@ -1197,7 +1203,7 @@ export class Task {
 		// 	}
 		// }
 		// // Save the updated messages
-		// await this.saveClineMessagesAndUpdateHistory()
+		// await this.saveskylineMessagesAndUpdateHistory()
 		// }
 	}
 
@@ -1491,7 +1497,7 @@ export class Task {
 	 * Migrates the disableBrowserTool setting from VSCode configuration to browserSettings
 	 */
 	private async migrateDisableBrowserToolSetting(): Promise<void> {
-		const config = vscode.workspace.getConfiguration("cline")
+		const config = vscode.workspace.getConfiguration("skyline")
 		const disableBrowserTool = config.get<boolean>("disableBrowserTool")
 
 		if (disableBrowserTool !== undefined) {
@@ -1502,7 +1508,7 @@ export class Task {
 	}
 
 	private async migratePreferredLanguageToolSetting(): Promise<void> {
-		const config = vscode.workspace.getConfiguration("cline")
+		const config = vscode.workspace.getConfiguration("skyline")
 		const preferredLanguage = config.get<LanguageDisplay>("preferredLanguage")
 		if (preferredLanguage !== undefined) {
 			this.chatSettings.preferredLanguage = preferredLanguage
@@ -1519,7 +1525,7 @@ export class Task {
 
 		await this.migrateDisableBrowserToolSetting()
 		const disableBrowserTool = this.browserSettings.disableToolUse ?? false
-		// cline browser tool uses image recognition for navigation (requires model image support).
+		// skyline browser tool uses image recognition for navigation (requires model image support).
 		const modelSupportsBrowserUse = this.api.getModel().info.supportsImages ?? false
 
 		const supportsBrowserUse = modelSupportsBrowserUse && !disableBrowserTool // only enable browser use if the model supports it and the user hasn't disabled it
@@ -1534,51 +1540,51 @@ export class Task {
 				? `# Preferred Language\n\nSpeak in ${preferredLanguage}.`
 				: ""
 
-		const { globalToggles, localToggles } = await refreshClineRulesToggles(this.getContext(), cwd)
+		const { globalToggles, localToggles } = await refreshskylineRulesToggles(this.getContext(), cwd)
 		const { windsurfLocalToggles, cursorLocalToggles } = await refreshExternalRulesToggles(this.getContext(), cwd)
 
-		const globalClineRulesFilePath = await ensureRulesDirectoryExists()
-		const globalClineRulesFileInstructions = await getGlobalClineRules(globalClineRulesFilePath, globalToggles)
+		const globalskylineRulesFilePath = await ensureRulesDirectoryExists()
+		const globalskylineRulesFileInstructions = await getGlobalskylineRules(globalskylineRulesFilePath, globalToggles)
 
-		const localClineRulesFileInstructions = await getLocalClineRules(cwd, localToggles)
+		const localskylineRulesFileInstructions = await getLocalskylineRules(cwd, localToggles)
 		const [localCursorRulesFileInstructions, localCursorRulesDirInstructions] = await getLocalCursorRules(
 			cwd,
 			cursorLocalToggles,
 		)
 		const localWindsurfRulesFileInstructions = await getLocalWindsurfRules(cwd, windsurfLocalToggles)
 
-		const clineIgnoreContent = this.clineIgnoreController.clineIgnoreContent
-		let clineIgnoreInstructions: string | undefined
-		if (clineIgnoreContent) {
-			clineIgnoreInstructions = formatResponse.clineIgnoreInstructions(clineIgnoreContent)
+		const skylineIgnoreContent = this.skylineIgnoreController.skylineIgnoreContent
+		let skylineIgnoreInstructions: string | undefined
+		if (skylineIgnoreContent) {
+			skylineIgnoreInstructions = formatResponse.skylineIgnoreInstructions(skylineIgnoreContent)
 		}
 
 		if (
 			settingsCustomInstructions ||
-			globalClineRulesFileInstructions ||
-			localClineRulesFileInstructions ||
+			globalskylineRulesFileInstructions ||
+			localskylineRulesFileInstructions ||
 			localCursorRulesFileInstructions ||
 			localCursorRulesDirInstructions ||
 			localWindsurfRulesFileInstructions ||
-			clineIgnoreInstructions ||
+			skylineIgnoreInstructions ||
 			preferredLanguageInstructions
 		) {
 			// altering the system prompt mid-task will break the prompt cache, but in the grand scheme this will not change often so it's better to not pollute user messages with it the way we have to with <potentially relevant details>
 			const userInstructions = addUserInstructions(
 				settingsCustomInstructions,
-				globalClineRulesFileInstructions,
-				localClineRulesFileInstructions,
+				globalskylineRulesFileInstructions,
+				localskylineRulesFileInstructions,
 				localCursorRulesFileInstructions,
 				localCursorRulesDirInstructions,
 				localWindsurfRulesFileInstructions,
-				clineIgnoreInstructions,
+				skylineIgnoreInstructions,
 				preferredLanguageInstructions,
 			)
 			systemPrompt += userInstructions
 		}
 		const contextManagementMetadata = await this.contextManager.getNewContextMessagesAndMetadata(
 			this.apiConversationHistory,
-			this.clineMessages,
+			this.skylineMessages,
 			this.api,
 			this.conversationHistoryDeletedRange,
 			previousApiReqIndex,
@@ -1587,7 +1593,7 @@ export class Task {
 
 		if (contextManagementMetadata.updatedConversationHistoryDeletedRange) {
 			this.conversationHistoryDeletedRange = contextManagementMetadata.conversationHistoryDeletedRange
-			await this.saveClineMessagesAndUpdateHistory() // saves task history item which we use to keep track of conversation history deleted range
+			await this.saveskylineMessagesAndUpdateHistory() // saves task history item which we use to keep track of conversation history deleted range
 		}
 
 		let stream = this.api.createMessage(systemPrompt, contextManagementMetadata.truncatedConversationHistory)
@@ -1601,7 +1607,7 @@ export class Task {
 			yield firstChunk.value
 			this.isWaitingForFirstChunk = false
 		} catch (error) {
-			const isOpenRouter = this.api instanceof OpenRouterHandler || this.api instanceof ClineHandler
+			const isOpenRouter = this.api instanceof OpenRouterHandler || this.api instanceof skylineHandler
 			const isAnthropic = this.api instanceof AnthropicHandler
 			const isOpenRouterContextWindowError = checkIsOpenRouterContextWindowError(error) && isOpenRouter
 			const isAnthropicContextWindowError = checkIsAnthropicContextWindowError(error) && isAnthropic
@@ -1612,7 +1618,7 @@ export class Task {
 					this.conversationHistoryDeletedRange,
 					"quarter", // Force aggressive truncation
 				)
-				await this.saveClineMessagesAndUpdateHistory()
+				await this.saveskylineMessagesAndUpdateHistory()
 				await this.contextManager.triggerApplyStandardContextTruncationNoticeChange(
 					Date.now(),
 					await ensureTaskDirectoryExists(this.getContext(), this.taskId),
@@ -1626,7 +1632,7 @@ export class Task {
 						this.conversationHistoryDeletedRange,
 						"quarter", // Force aggressive truncation
 					)
-					await this.saveClineMessagesAndUpdateHistory()
+					await this.saveskylineMessagesAndUpdateHistory()
 					await this.contextManager.triggerApplyStandardContextTruncationNoticeChange(
 						Date.now(),
 						await ensureTaskDirectoryExists(this.getContext(), this.taskId),
@@ -1678,7 +1684,7 @@ export class Task {
 
 	async presentAssistantMessage() {
 		if (this.abort) {
-			throw new Error("Cline instance aborted")
+			throw new Error("skyline instance aborted")
 		}
 
 		if (this.presentAssistantMessageLocked) {
@@ -1863,7 +1869,7 @@ export class Task {
 					}
 				}
 
-				const askApproval = async (type: ClineAsk, partialMessage?: string) => {
+				const askApproval = async (type: skylineAsk, partialMessage?: string) => {
 					const { response, text, images } = await this.ask(type, partialMessage, false)
 					if (response !== "yesButtonClicked") {
 						// User pressed reject button or responded with a message, which we treat as a rejection
@@ -1951,10 +1957,10 @@ export class Task {
 							break
 						}
 
-						const accessAllowed = this.clineIgnoreController.validateAccess(relPath)
+						const accessAllowed = this.skylineIgnoreController.validateAccess(relPath)
 						if (!accessAllowed) {
-							await this.say("clineignore_error", relPath)
-							pushToolResult(formatResponse.toolError(formatResponse.clineIgnoreError(relPath)))
+							await this.say("skylineignore_error", relPath)
+							pushToolResult(formatResponse.toolError(formatResponse.skylineIgnoreError(relPath)))
 							await this.saveCheckpoint()
 							break
 						}
@@ -1979,7 +1985,7 @@ export class Task {
 									diff = removeInvalidChars(diff)
 								}
 
-								// open the editor if not done already.  This is to fix diff error when model provides correct search-replace text but Cline throws error
+								// open the editor if not done already.  This is to fix diff error when model provides correct search-replace text but skyline throws error
 								// because file is not open.
 								if (!this.diffViewProvider.isEditing) {
 									await this.diffViewProvider.open(relPath)
@@ -2038,7 +2044,7 @@ export class Task {
 
 							newContent = newContent.trimEnd() // remove any trailing newlines, since it's automatically inserted by the editor
 
-							const sharedMessageProps: ClineSayTool = {
+							const sharedMessageProps: skylineSayTool = {
 								tool: fileExists ? "editedExistingFile" : "newFileCreated",
 								path: getReadablePath(cwd, removeClosingTag("path", relPath)),
 								content: diff || content,
@@ -2120,7 +2126,7 @@ export class Task {
 									// 		newContent,
 									// 	)
 									// : undefined,
-								} satisfies ClineSayTool)
+								} satisfies skylineSayTool)
 								if (this.shouldAutoApproveToolWithPath(block.name, relPath)) {
 									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
 									await this.say("tool", completeMessage, undefined, false)
@@ -2132,7 +2138,7 @@ export class Task {
 								} else {
 									// If auto-approval is enabled but this tool wasn't auto-approved, send notification
 									showNotificationForApprovalIfAutoApprovalEnabled(
-										`Cline wants to ${fileExists ? "edit" : "create"} ${path.basename(relPath)}`,
+										`skyline wants to ${fileExists ? "edit" : "create"} ${path.basename(relPath)}`,
 									)
 									this.removeLastPartialMessageIfExistsWithType("say", "tool")
 
@@ -2171,15 +2177,15 @@ export class Task {
 									}
 								}
 
-								// Mark the file as edited by Cline to prevent false "recently modified" warnings
-								this.fileContextTracker.markFileAsEditedByCline(relPath)
+								// Mark the file as edited by skyline to prevent false "recently modified" warnings
+								this.fileContextTracker.markFileAsEditedByskyline(relPath)
 
 								const { newProblemsMessage, userEdits, autoFormattingEdits, finalContent } =
 									await this.diffViewProvider.saveChanges()
 								this.didEditFile = true // used to determine if we should wait for busy terminal to update before sending api request
 
 								// Track file edit operation
-								await this.fileContextTracker.trackFileContext(relPath, "cline_edited")
+								await this.fileContextTracker.trackFileContext(relPath, "skyline_edited")
 
 								if (userEdits) {
 									// Track file edit operation
@@ -2191,7 +2197,7 @@ export class Task {
 											tool: fileExists ? "editedExistingFile" : "newFileCreated",
 											path: getReadablePath(cwd, relPath),
 											diff: userEdits,
-										} satisfies ClineSayTool),
+										} satisfies skylineSayTool),
 									)
 									pushToolResult(
 										formatResponse.fileEditWithUserChanges(
@@ -2233,7 +2239,7 @@ export class Task {
 					}
 					case "read_file": {
 						const relPath: string | undefined = block.params.path
-						const sharedMessageProps: ClineSayTool = {
+						const sharedMessageProps: skylineSayTool = {
 							tool: "readFile",
 							path: getReadablePath(cwd, removeClosingTag("path", relPath)),
 						}
@@ -2243,7 +2249,7 @@ export class Task {
 									...sharedMessageProps,
 									content: undefined,
 									operationIsLocatedInWorkspace: isLocatedInWorkspace(relPath),
-								} satisfies ClineSayTool)
+								} satisfies skylineSayTool)
 								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
 									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
 									await this.say("tool", partialMessage, undefined, block.partial)
@@ -2260,10 +2266,10 @@ export class Task {
 									break
 								}
 
-								const accessAllowed = this.clineIgnoreController.validateAccess(relPath)
+								const accessAllowed = this.skylineIgnoreController.validateAccess(relPath)
 								if (!accessAllowed) {
-									await this.say("clineignore_error", relPath)
-									pushToolResult(formatResponse.toolError(formatResponse.clineIgnoreError(relPath)))
+									await this.say("skylineignore_error", relPath)
+									pushToolResult(formatResponse.toolError(formatResponse.skylineIgnoreError(relPath)))
 									await this.saveCheckpoint()
 									break
 								}
@@ -2274,7 +2280,7 @@ export class Task {
 									...sharedMessageProps,
 									content: absolutePath,
 									operationIsLocatedInWorkspace: isLocatedInWorkspace(relPath),
-								} satisfies ClineSayTool)
+								} satisfies skylineSayTool)
 								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
 									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
 									await this.say("tool", completeMessage, undefined, false) // need to be sending partialValue bool, since undefined has its own purpose in that the message is treated neither as a partial or completion of a partial, but as a single complete message
@@ -2282,7 +2288,7 @@ export class Task {
 									telemetryService.captureToolUsage(this.taskId, block.name, true, true)
 								} else {
 									showNotificationForApprovalIfAutoApprovalEnabled(
-										`Cline wants to read ${path.basename(absolutePath)}`,
+										`skyline wants to read ${path.basename(absolutePath)}`,
 									)
 									this.removeLastPartialMessageIfExistsWithType("say", "tool")
 									const didApprove = await askApproval("tool", completeMessage)
@@ -2313,7 +2319,7 @@ export class Task {
 						const relDirPath: string | undefined = block.params.path
 						const recursiveRaw: string | undefined = block.params.recursive
 						const recursive = recursiveRaw?.toLowerCase() === "true"
-						const sharedMessageProps: ClineSayTool = {
+						const sharedMessageProps: skylineSayTool = {
 							tool: !recursive ? "listFilesTopLevel" : "listFilesRecursive",
 							path: getReadablePath(cwd, removeClosingTag("path", relDirPath)),
 						}
@@ -2323,7 +2329,7 @@ export class Task {
 									...sharedMessageProps,
 									content: "",
 									operationIsLocatedInWorkspace: isLocatedInWorkspace(block.params.path),
-								} satisfies ClineSayTool)
+								} satisfies skylineSayTool)
 								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
 									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
 									await this.say("tool", partialMessage, undefined, block.partial)
@@ -2349,13 +2355,13 @@ export class Task {
 									absolutePath,
 									files,
 									didHitLimit,
-									this.clineIgnoreController,
+									this.skylineIgnoreController,
 								)
 								const completeMessage = JSON.stringify({
 									...sharedMessageProps,
 									content: result,
 									operationIsLocatedInWorkspace: isLocatedInWorkspace(block.params.path),
-								} satisfies ClineSayTool)
+								} satisfies skylineSayTool)
 								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
 									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
 									await this.say("tool", completeMessage, undefined, false)
@@ -2363,7 +2369,7 @@ export class Task {
 									telemetryService.captureToolUsage(this.taskId, block.name, true, true)
 								} else {
 									showNotificationForApprovalIfAutoApprovalEnabled(
-										`Cline wants to view directory ${path.basename(absolutePath)}/`,
+										`skyline wants to view directory ${path.basename(absolutePath)}/`,
 									)
 									this.removeLastPartialMessageIfExistsWithType("say", "tool")
 									const didApprove = await askApproval("tool", completeMessage)
@@ -2386,7 +2392,7 @@ export class Task {
 					}
 					case "list_code_definition_names": {
 						const relDirPath: string | undefined = block.params.path
-						const sharedMessageProps: ClineSayTool = {
+						const sharedMessageProps: skylineSayTool = {
 							tool: "listCodeDefinitionNames",
 							path: getReadablePath(cwd, removeClosingTag("path", relDirPath)),
 						}
@@ -2396,7 +2402,7 @@ export class Task {
 									...sharedMessageProps,
 									content: "",
 									operationIsLocatedInWorkspace: isLocatedInWorkspace(block.params.path),
-								} satisfies ClineSayTool)
+								} satisfies skylineSayTool)
 								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
 									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
 									await this.say("tool", partialMessage, undefined, block.partial)
@@ -2418,14 +2424,14 @@ export class Task {
 								const absolutePath = path.resolve(cwd, relDirPath)
 								const result = await parseSourceCodeForDefinitionsTopLevel(
 									absolutePath,
-									this.clineIgnoreController,
+									this.skylineIgnoreController,
 								)
 
 								const completeMessage = JSON.stringify({
 									...sharedMessageProps,
 									content: result,
 									operationIsLocatedInWorkspace: isLocatedInWorkspace(block.params.path),
-								} satisfies ClineSayTool)
+								} satisfies skylineSayTool)
 								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
 									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
 									await this.say("tool", completeMessage, undefined, false)
@@ -2433,7 +2439,7 @@ export class Task {
 									telemetryService.captureToolUsage(this.taskId, block.name, true, true)
 								} else {
 									showNotificationForApprovalIfAutoApprovalEnabled(
-										`Cline wants to view source code definitions in ${path.basename(absolutePath)}/`,
+										`skyline wants to view source code definitions in ${path.basename(absolutePath)}/`,
 									)
 									this.removeLastPartialMessageIfExistsWithType("say", "tool")
 									const didApprove = await askApproval("tool", completeMessage)
@@ -2458,7 +2464,7 @@ export class Task {
 						const relDirPath: string | undefined = block.params.path
 						const regex: string | undefined = block.params.regex
 						const filePattern: string | undefined = block.params.file_pattern
-						const sharedMessageProps: ClineSayTool = {
+						const sharedMessageProps: skylineSayTool = {
 							tool: "searchFiles",
 							path: getReadablePath(cwd, removeClosingTag("path", relDirPath)),
 							regex: removeClosingTag("regex", regex),
@@ -2470,7 +2476,7 @@ export class Task {
 									...sharedMessageProps,
 									content: "",
 									operationIsLocatedInWorkspace: isLocatedInWorkspace(block.params.path),
-								} satisfies ClineSayTool)
+								} satisfies skylineSayTool)
 								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
 									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
 									await this.say("tool", partialMessage, undefined, block.partial)
@@ -2500,14 +2506,14 @@ export class Task {
 									absolutePath,
 									regex,
 									filePattern,
-									this.clineIgnoreController,
+									this.skylineIgnoreController,
 								)
 
 								const completeMessage = JSON.stringify({
 									...sharedMessageProps,
 									content: results,
 									operationIsLocatedInWorkspace: isLocatedInWorkspace(block.params.path),
-								} satisfies ClineSayTool)
+								} satisfies skylineSayTool)
 								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
 									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
 									await this.say("tool", completeMessage, undefined, false)
@@ -2515,7 +2521,7 @@ export class Task {
 									telemetryService.captureToolUsage(this.taskId, block.name, true, true)
 								} else {
 									showNotificationForApprovalIfAutoApprovalEnabled(
-										`Cline wants to search files in ${path.basename(absolutePath)}/`,
+										`skyline wants to search files in ${path.basename(absolutePath)}/`,
 									)
 									this.removeLastPartialMessageIfExistsWithType("say", "tool")
 									const didApprove = await askApproval("tool", completeMessage)
@@ -2579,7 +2585,7 @@ export class Task {
 											action: action as BrowserAction,
 											coordinate: removeClosingTag("coordinate", coordinate),
 											text: removeClosingTag("text", text),
-										} satisfies ClineSayBrowserAction),
+										} satisfies skylineSayBrowserAction),
 										undefined,
 										block.partial,
 									)
@@ -2603,7 +2609,7 @@ export class Task {
 										this.consecutiveAutoApprovedRequestsCount++
 									} else {
 										showNotificationForApprovalIfAutoApprovalEnabled(
-											`Cline wants to use a browser and launch ${url}`,
+											`skyline wants to use a browser and launch ${url}`,
 										)
 										this.removeLastPartialMessageIfExistsWithType("say", "browser_action_launch")
 										const didApprove = await askApproval("browser_action_launch", url)
@@ -2654,7 +2660,7 @@ export class Task {
 											action: action as BrowserAction,
 											coordinate,
 											text,
-										} satisfies ClineSayBrowserAction),
+										} satisfies skylineSayBrowserAction),
 										undefined,
 										false,
 									)
@@ -2755,11 +2761,11 @@ export class Task {
 									command = fixModelHtmlEscaping(command)
 								}
 
-								const ignoredFileAttemptedToAccess = this.clineIgnoreController.validateCommand(command)
+								const ignoredFileAttemptedToAccess = this.skylineIgnoreController.validateCommand(command)
 								if (ignoredFileAttemptedToAccess) {
-									await this.say("clineignore_error", ignoredFileAttemptedToAccess)
+									await this.say("skylineignore_error", ignoredFileAttemptedToAccess)
 									pushToolResult(
-										formatResponse.toolError(formatResponse.clineIgnoreError(ignoredFileAttemptedToAccess)),
+										formatResponse.toolError(formatResponse.skylineIgnoreError(ignoredFileAttemptedToAccess)),
 									)
 									await this.saveCheckpoint()
 									break
@@ -2784,7 +2790,7 @@ export class Task {
 									didAutoApprove = true
 								} else {
 									showNotificationForApprovalIfAutoApprovalEnabled(
-										`Cline wants to execute a command: ${command}`,
+										`skyline wants to execute a command: ${command}`,
 									)
 									// this.removeLastPartialMessageIfExistsWithType("say", "command")
 									const didApprove = await askApproval(
@@ -2844,7 +2850,7 @@ export class Task {
 									serverName: removeClosingTag("server_name", server_name),
 									toolName: removeClosingTag("tool_name", tool_name),
 									arguments: removeClosingTag("arguments", mcp_arguments),
-								} satisfies ClineAskUseMcpServer)
+								} satisfies skylineAskUseMcpServer)
 
 								if (this.shouldAutoApproveTool(block.name)) {
 									this.removeLastPartialMessageIfExistsWithType("ask", "use_mcp_server")
@@ -2882,7 +2888,7 @@ export class Task {
 										this.consecutiveMistakeCount++
 										await this.say(
 											"error",
-											`Cline tried to use ${tool_name} with an invalid JSON argument. Retrying...`,
+											`skyline tried to use ${tool_name} with an invalid JSON argument. Retrying...`,
 										)
 										pushToolResult(
 											formatResponse.toolError(
@@ -2899,7 +2905,7 @@ export class Task {
 									serverName: server_name,
 									toolName: tool_name,
 									arguments: mcp_arguments,
-								} satisfies ClineAskUseMcpServer)
+								} satisfies skylineAskUseMcpServer)
 
 								const isToolAutoApproved = this.mcpHub.connections
 									?.find((conn) => conn.server.name === server_name)
@@ -2911,7 +2917,7 @@ export class Task {
 									this.consecutiveAutoApprovedRequestsCount++
 								} else {
 									showNotificationForApprovalIfAutoApprovalEnabled(
-										`Cline wants to use ${tool_name} on ${server_name}`,
+										`skyline wants to use ${tool_name} on ${server_name}`,
 									)
 									this.removeLastPartialMessageIfExistsWithType("say", "use_mcp_server")
 									const didApprove = await askApproval("use_mcp_server", completeMessage)
@@ -2981,7 +2987,7 @@ export class Task {
 									type: "access_mcp_resource",
 									serverName: removeClosingTag("server_name", server_name),
 									uri: removeClosingTag("uri", uri),
-								} satisfies ClineAskUseMcpServer)
+								} satisfies skylineAskUseMcpServer)
 
 								if (this.shouldAutoApproveTool(block.name)) {
 									this.removeLastPartialMessageIfExistsWithType("ask", "use_mcp_server")
@@ -3010,7 +3016,7 @@ export class Task {
 									type: "access_mcp_resource",
 									serverName: server_name,
 									uri,
-								} satisfies ClineAskUseMcpServer)
+								} satisfies skylineAskUseMcpServer)
 
 								if (this.shouldAutoApproveTool(block.name)) {
 									this.removeLastPartialMessageIfExistsWithType("ask", "use_mcp_server")
@@ -3018,7 +3024,7 @@ export class Task {
 									this.consecutiveAutoApprovedRequestsCount++
 								} else {
 									showNotificationForApprovalIfAutoApprovalEnabled(
-										`Cline wants to access ${uri} on ${server_name}`,
+										`skyline wants to access ${uri} on ${server_name}`,
 									)
 									this.removeLastPartialMessageIfExistsWithType("say", "use_mcp_server")
 									const didApprove = await askApproval("use_mcp_server", completeMessage)
@@ -3058,7 +3064,7 @@ export class Task {
 						const sharedMessage = {
 							question: removeClosingTag("question", question),
 							options: parsePartialArrayString(removeClosingTag("options", optionsRaw)),
-						} satisfies ClineAskQuestion
+						} satisfies skylineAskQuestion
 						try {
 							if (block.partial) {
 								await this.ask("followup", JSON.stringify(sharedMessage), block.partial).catch(() => {})
@@ -3074,7 +3080,7 @@ export class Task {
 
 								if (this.autoApprovalSettings.enabled && this.autoApprovalSettings.enableNotifications) {
 									showSystemNotification({
-										subtitle: "Cline has a question...",
+										subtitle: "Skyline has a question...",
 										message: question.replace(/\n/g, " "),
 									})
 								}
@@ -3088,13 +3094,13 @@ export class Task {
 								if (optionsRaw && text && parsePartialArrayString(optionsRaw).includes(text)) {
 									// Valid option selected, don't show user message in UI
 									// Update last followup message with selected option
-									const lastFollowupMessage = findLast(this.clineMessages, (m) => m.ask === "followup")
+									const lastFollowupMessage = findLast(this.skylineMessages, (m) => m.ask === "followup")
 									if (lastFollowupMessage) {
 										lastFollowupMessage.text = JSON.stringify({
 											...sharedMessage,
 											selected: text,
-										} satisfies ClineAskQuestion)
-										await this.saveClineMessagesAndUpdateHistory()
+										} satisfies skylineAskQuestion)
+										await this.saveskylineMessagesAndUpdateHistory()
 										telemetryService.captureOptionSelected(this.taskId, options.length, "act")
 									}
 								} else {
@@ -3130,8 +3136,8 @@ export class Task {
 
 								if (this.autoApprovalSettings.enabled && this.autoApprovalSettings.enableNotifications) {
 									showSystemNotification({
-										subtitle: "Cline wants to start a new task...",
-										message: `Cline is suggesting to start a new task with: ${context}`,
+										subtitle: "skyline wants to start a new task...",
+										message: `skyline is suggesting to start a new task with: ${context}`,
 									})
 								}
 
@@ -3178,8 +3184,8 @@ export class Task {
 
 								if (this.autoApprovalSettings.enabled && this.autoApprovalSettings.enableNotifications) {
 									showSystemNotification({
-										subtitle: "Cline wants to condense the conversation...",
-										message: `Cline is suggesting to condense your conversation with: ${context}`,
+										subtitle: "skyline wants to condense the conversation...",
+										message: `skyline is suggesting to condense your conversation with: ${context}`,
 									})
 								}
 
@@ -3208,7 +3214,7 @@ export class Task {
 										this.conversationHistoryDeletedRange,
 										keepStrategy,
 									)
-									await this.saveClineMessagesAndUpdateHistory()
+									await this.saveskylineMessagesAndUpdateHistory()
 									await this.contextManager.triggerApplyStandardContextTruncationNoticeChange(
 										Date.now(),
 										await ensureTaskDirectoryExists(this.getContext(), this.taskId),
@@ -3280,14 +3286,14 @@ export class Task {
 
 								if (this.autoApprovalSettings.enabled && this.autoApprovalSettings.enableNotifications) {
 									showSystemNotification({
-										subtitle: "Cline wants to create a github issue...",
-										message: `Cline is suggesting to create a github issue with the title: ${title}`,
+										subtitle: "skyline wants to create a github issue...",
+										message: `skyline is suggesting to create a github issue with the title: ${title}`,
 									})
 								}
 
 								// Derive system information values algorithmically
 								const operatingSystem = os.platform() + " " + os.release()
-								const clineVersion =
+								const skylineVersion =
 									vscode.extensions.getExtension("saoudrizwan.claude-dev")?.packageJSON.version || "Unknown"
 								const systemInfo = `VSCode: ${vscode.version}, Node.js: ${process.version}, Architecture: ${os.arch()}`
 								const providerAndModel = `${(await getGlobalState(this.getContext(), "apiProvider")) as string} / ${this.api.getModel().id}`
@@ -3303,7 +3309,7 @@ export class Task {
 									provider_and_model: providerAndModel,
 									operating_system: operatingSystem,
 									system_info: systemInfo,
-									cline_version: clineVersion,
+									skyline_version: skylineVersion,
 								})
 
 								const { text, images } = await this.ask("report_bug", bugReportData, false)
@@ -3328,7 +3334,7 @@ export class Task {
 										const params = new Map<string, string>()
 										params.set("title", title)
 										params.set("operating-system", operatingSystem)
-										params.set("cline-version", clineVersion)
+										params.set("skyline-version", skylineVersion)
 										params.set("system-info", systemInfo)
 										params.set("additional-context", additional_context)
 										params.set("what-happened", what_happened)
@@ -3338,7 +3344,7 @@ export class Task {
 
 										// Use our utility function to create and open the GitHub issue URL
 										// This bypasses VS Code's URI handling issues with special characters
-										await createAndOpenGitHubIssue("cline", "cline", "bug_report.yml", params)
+										await createAndOpenGitHubIssue("skyline", "skyline", "bug_report.yml", params)
 									} catch (error) {
 										console.error(`An error occurred while attempting to report the bug: ${error}`)
 									}
@@ -3358,7 +3364,7 @@ export class Task {
 						const sharedMessage = {
 							response: removeClosingTag("response", response),
 							options: parsePartialArrayString(removeClosingTag("options", optionsRaw)),
-						} satisfies ClinePlanModeResponse
+						} satisfies skylinePlanModeResponse
 						try {
 							if (block.partial) {
 								await this.ask("plan_mode_respond", JSON.stringify(sharedMessage), block.partial).catch(() => {})
@@ -3374,7 +3380,7 @@ export class Task {
 
 								// if (this.autoApprovalSettings.enabled && this.autoApprovalSettings.enableNotifications) {
 								// 	showSystemNotification({
-								// 		subtitle: "Cline has a response...",
+								// 		subtitle: "skyline has a response...",
 								// 		message: response.replace(/\n/g, " "),
 								// 	})
 								// }
@@ -3395,13 +3401,13 @@ export class Task {
 								if (optionsRaw && text && parsePartialArrayString(optionsRaw).includes(text)) {
 									// Valid option selected, don't show user message in UI
 									// Update last followup message with selected option
-									const lastPlanMessage = findLast(this.clineMessages, (m) => m.ask === "plan_mode_respond")
+									const lastPlanMessage = findLast(this.skylineMessages, (m) => m.ask === "plan_mode_respond")
 									if (lastPlanMessage) {
 										lastPlanMessage.text = JSON.stringify({
 											...sharedMessage,
 											selected: text,
-										} satisfies ClinePlanModeResponse)
-										await this.saveClineMessagesAndUpdateHistory()
+										} satisfies skylinePlanModeResponse)
+										await this.saveskylineMessagesAndUpdateHistory()
 										telemetryService.captureOptionSelected(this.taskId, options.length, "plan")
 									}
 								} else {
@@ -3458,7 +3464,7 @@ export class Task {
 						let resultToSend = result
 						if (command) {
 							await this.say("completion_result", resultToSend)
-							// TODO: currently we don't handle if this command fails, it could be useful to let cline know and retry
+							// TODO: currently we don't handle if this command fails, it could be useful to let skyline know and retry
 							const [didUserReject, commandResult] = await this.executeCommand(command, true)
 							// if we received non-empty string, the command was rejected or failed
 							if (commandResult) {
@@ -3480,7 +3486,10 @@ export class Task {
 							// Add newchanges flag if there are new changes to the workspace
 
 							const hasNewChanges = await this.doesLatestTaskCompletionHaveNewChanges()
-							const lastCompletionResultMessage = findLast(this.clineMessages, (m) => m.say === "completion_result")
+							const lastCompletionResultMessage = findLast(
+								this.skylineMessages,
+								(m) => m.say === "completion_result",
+							)
 							if (
 								lastCompletionResultMessage &&
 								hasNewChanges &&
@@ -3488,17 +3497,17 @@ export class Task {
 							) {
 								lastCompletionResultMessage.text += COMPLETION_RESULT_CHANGES_FLAG
 							}
-							await this.saveClineMessagesAndUpdateHistory()
+							await this.saveskylineMessagesAndUpdateHistory()
 						}
 
 						try {
-							const lastMessage = this.clineMessages.at(-1)
+							const lastMessage = this.skylineMessages.at(-1)
 							if (block.partial) {
 								if (command) {
 									// the attempt_completion text is done, now we're getting command
 									// remove the previous partial attempt_completion ask, replace with say, post state to webview, then stream command
 
-									// const secondLastMessage = this.clineMessages.at(-2)
+									// const secondLastMessage = this.skylineMessages.at(-2)
 									// NOTE: we do not want to auto approve a command run as part of the attempt_completion tool
 									if (lastMessage && lastMessage.ask === "command") {
 										// update command
@@ -3650,9 +3659,9 @@ export class Task {
 		}
 	}
 
-	async recursivelyMakeClineRequests(userContent: UserContent, includeFileDetails: boolean = false): Promise<boolean> {
+	async recursivelyMakeskylineRequests(userContent: UserContent, includeFileDetails: boolean = false): Promise<boolean> {
 		if (this.abort) {
-			throw new Error("Cline instance aborted")
+			throw new Error("skyline instance aborted")
 		}
 
 		// Used to know what models were used in the task if user wants to export metadata for error reporting purposes
@@ -3667,14 +3676,14 @@ export class Task {
 			if (this.autoApprovalSettings.enabled && this.autoApprovalSettings.enableNotifications) {
 				showSystemNotification({
 					subtitle: "Error",
-					message: "Cline is having trouble. Would you like to continue the task?",
+					message: "skyline is having trouble. Would you like to continue the task?",
 				})
 			}
 			const { response, text, images } = await this.ask(
 				"mistake_limit_reached",
 				this.api.getModel().id.includes("claude")
 					? `This may indicate a failure in his thought process or inability to use a tool properly, which can be mitigated with some user guidance (e.g. "Try breaking down the task into smaller steps").`
-					: "Cline uses complex prompts and iterative task execution that may be challenging for less capable models. For best results, it's recommended to use Claude 3.7 Sonnet for its advanced agentic coding capabilities.",
+					: "skyline uses complex prompts and iterative task execution that may be challenging for less capable models. For best results, it's recommended to use Claude 3.7 Sonnet for its advanced agentic coding capabilities.",
 			)
 			if (response === "messageResponse") {
 				userContent.push(
@@ -3697,22 +3706,22 @@ export class Task {
 			if (this.autoApprovalSettings.enableNotifications) {
 				showSystemNotification({
 					subtitle: "Max Requests Reached",
-					message: `Cline has auto-approved ${this.autoApprovalSettings.maxRequests.toString()} API requests.`,
+					message: `skyline has auto-approved ${this.autoApprovalSettings.maxRequests.toString()} API requests.`,
 				})
 			}
 			await this.ask(
 				"auto_approval_max_req_reached",
-				`Cline has auto-approved ${this.autoApprovalSettings.maxRequests.toString()} API requests. Would you like to reset the count and proceed with the task?`,
+				`skyline has auto-approved ${this.autoApprovalSettings.maxRequests.toString()} API requests. Would you like to reset the count and proceed with the task?`,
 			)
 			// if we get past the promise it means the user approved and did not start a new task
 			this.consecutiveAutoApprovedRequestsCount = 0
 		}
 
 		// get previous api req's index to check token usage and determine if we need to truncate conversation history
-		const previousApiReqIndex = findLastIndex(this.clineMessages, (m) => m.say === "api_req_started")
+		const previousApiReqIndex = findLastIndex(this.skylineMessages, (m) => m.say === "api_req_started")
 
 		// Save checkpoint if this is the first API request
-		const isFirstRequest = this.clineMessages.filter((m) => m.say === "api_req_started").length === 0
+		const isFirstRequest = this.skylineMessages.filter((m) => m.say === "api_req_started").length === 0
 
 		// getting verbose details is an expensive operation, it uses globby to top-down build file structure of project which for large projects can take a few seconds
 		// for the best UX we show a placeholder api_req_started message with a loading spinner as this happens
@@ -3731,13 +3740,13 @@ export class Task {
 					{
 						milliseconds: 15_000,
 						message:
-							"Checkpoints taking too long to initialize. Consider re-opening Cline in a project that uses git, or disabling checkpoints.",
+							"Checkpoints taking too long to initialize. Consider re-opening skyline in a project that uses git, or disabling checkpoints.",
 					},
 				)
 			} catch (error) {
 				const errorMessage = error instanceof Error ? error.message : "Unknown error"
 				console.error("Failed to initialize checkpoint tracker:", errorMessage)
-				this.checkpointTrackerErrorMessage = errorMessage // will be displayed right away since we saveClineMessages next which posts state to webview
+				this.checkpointTrackerErrorMessage = errorMessage // will be displayed right away since we saveskylineMessages next which posts state to webview
 			}
 		}
 
@@ -3746,10 +3755,10 @@ export class Task {
 		if (isFirstRequest && this.enableCheckpoints && this.checkpointTracker) {
 			await this.say("checkpoint_created") // Now this is conditional
 			const commitHash = await this.checkpointTracker.commit() // Actual commit
-			const lastCheckpointMessage = findLast(this.clineMessages, (m) => m.say === "checkpoint_created")
+			const lastCheckpointMessage = findLast(this.skylineMessages, (m) => m.say === "checkpoint_created")
 			if (lastCheckpointMessage) {
 				lastCheckpointMessage.lastCheckpointHash = commitHash
-				// saveClineMessagesAndUpdateHistory will be called later after API response,
+				// saveskylineMessagesAndUpdateHistory will be called later after API response,
 				// so no need to call it here unless this is the only modification to this message.
 				// For now, assuming it's handled later.
 			}
@@ -3759,13 +3768,13 @@ export class Task {
 			// No explicit UI message here, error message will be in ExtensionState.
 		}
 
-		const [parsedUserContent, environmentDetails, clinerulesError] = await this.loadContext(userContent, includeFileDetails)
+		const [parsedUserContent, environmentDetails, skylinerulesError] = await this.loadContext(userContent, includeFileDetails)
 
-		// error handling if the user uses the /newrule command & their .clinerules is a file, for file read operations didnt work properly
-		if (clinerulesError === true) {
+		// error handling if the user uses the /newrule command & their .skylinerules is a file, for file read operations didnt work properly
+		if (skylinerulesError === true) {
 			await this.say(
 				"error",
-				"Issue with processing the /newrule command. Double check that, if '.clinerules' already exists, it's a directory and not a file. Otherwise there was an issue referencing this file/directory.",
+				"Issue with processing the /newrule command. Double check that, if '.skylinerules' already exists, it's a directory and not a file. Otherwise there was an issue referencing this file/directory.",
 			)
 		}
 
@@ -3781,11 +3790,11 @@ export class Task {
 		telemetryService.captureConversationTurnEvent(this.taskId, currentProviderId, this.api.getModel().id, "user", true)
 
 		// since we sent off a placeholder api_req_started message to update the webview while waiting to actually start the API request (to load potential details for example), we need to update the text of that message
-		const lastApiReqIndex = findLastIndex(this.clineMessages, (m) => m.say === "api_req_started")
-		this.clineMessages[lastApiReqIndex].text = JSON.stringify({
+		const lastApiReqIndex = findLastIndex(this.skylineMessages, (m) => m.say === "api_req_started")
+		this.skylineMessages[lastApiReqIndex].text = JSON.stringify({
 			request: userContent.map((block) => formatContentBlockToMarkdown(block)).join("\n\n"),
-		} satisfies ClineApiReqInfo)
-		await this.saveClineMessagesAndUpdateHistory()
+		} satisfies skylineApiReqInfo)
+		await this.saveskylineMessagesAndUpdateHistory()
 		await this.postStateToWebview()
 
 		try {
@@ -3798,9 +3807,9 @@ export class Task {
 			// update api_req_started. we can't use api_req_finished anymore since it's a unique case where it could come after a streaming message (ie in the middle of being updated or executed)
 			// fortunately api_req_finished was always parsed out for the gui anyways, so it remains solely for legacy purposes to keep track of prices in tasks from history
 			// (it's worth removing a few months from now)
-			const updateApiReqMsg = (cancelReason?: ClineApiReqCancelReason, streamingFailedMessage?: string) => {
-				this.clineMessages[lastApiReqIndex].text = JSON.stringify({
-					...JSON.parse(this.clineMessages[lastApiReqIndex].text || "{}"),
+			const updateApiReqMsg = (cancelReason?: skylineApiReqCancelReason, streamingFailedMessage?: string) => {
+				this.skylineMessages[lastApiReqIndex].text = JSON.stringify({
+					...JSON.parse(this.skylineMessages[lastApiReqIndex].text || "{}"),
 					tokensIn: inputTokens,
 					tokensOut: outputTokens,
 					cacheWrites: cacheWriteTokens,
@@ -3816,22 +3825,22 @@ export class Task {
 						),
 					cancelReason,
 					streamingFailedMessage,
-				} satisfies ClineApiReqInfo)
+				} satisfies skylineApiReqInfo)
 			}
 
-			const abortStream = async (cancelReason: ClineApiReqCancelReason, streamingFailedMessage?: string) => {
+			const abortStream = async (cancelReason: skylineApiReqCancelReason, streamingFailedMessage?: string) => {
 				if (this.diffViewProvider.isEditing) {
 					await this.diffViewProvider.revertChanges() // closes diff view
 				}
 
 				// if last message is a partial we need to update and save it
-				const lastMessage = this.clineMessages.at(-1)
+				const lastMessage = this.skylineMessages.at(-1)
 				if (lastMessage && lastMessage.partial) {
 					// lastMessage.ts = Date.now() DO NOT update ts since it is used as a key for virtuoso list
 					lastMessage.partial = false
 					// instead of streaming partialMessage events, we do a save and post like normal to persist to disk
 					console.log("updating partial message", lastMessage)
-					// await this.saveClineMessagesAndUpdateHistory()
+					// await this.saveskylineMessagesAndUpdateHistory()
 				}
 
 				// Let assistant know their response was interrupted for when task is resumed
@@ -3853,7 +3862,7 @@ export class Task {
 
 				// update api_req_started to have cancelled and cost, so that we can display the cost of the partial stream
 				updateApiReqMsg(cancelReason, streamingFailedMessage)
-				await this.saveClineMessagesAndUpdateHistory()
+				await this.saveskylineMessagesAndUpdateHistory()
 
 				telemetryService.captureConversationTurnEvent(
 					this.taskId,
@@ -3927,7 +3936,7 @@ export class Task {
 					if (this.abort) {
 						console.log("aborting stream...")
 						if (!this.abandoned) {
-							// only need to gracefully abort if this instance isn't abandoned (sometimes openrouter stream hangs, in which case this would affect future instances of cline)
+							// only need to gracefully abort if this instance isn't abandoned (sometimes openrouter stream hangs, in which case this would affect future instances of skyline)
 							await abortStream("user_cancelled")
 						}
 						break // aborts the stream
@@ -3949,7 +3958,7 @@ export class Task {
 					}
 				}
 			} catch (error) {
-				// abandoned happens when extension is no longer waiting for the cline instance to finish aborting (error is thrown here when any function in the for loop throws due to this.abort)
+				// abandoned happens when extension is no longer waiting for the skyline instance to finish aborting (error is thrown here when any function in the for loop throws due to this.abort)
 				if (!this.abandoned) {
 					this.abortTask() // if the stream failed, there's various states the task could be in (i.e. could have streamed some tools the user may have executed), so we just resort to replicating a cancel task
 					const errorMessage = this.formatErrorWithStatusCode(error)
@@ -3961,7 +3970,7 @@ export class Task {
 				this.isStreaming = false
 			}
 
-			// OpenRouter/Cline may not return token usage as part of the stream (since it may abort early), so we fetch after the stream is finished
+			// OpenRouter/skyline may not return token usage as part of the stream (since it may abort early), so we fetch after the stream is finished
 			// (updateApiReq below will update the api_req_started message with the usage details. we do this async so it updates the api_req_started message in the background)
 			if (!didReceiveUsageChunk) {
 				this.api.getApiStreamUsage?.().then(async (apiStreamUsage) => {
@@ -3973,14 +3982,14 @@ export class Task {
 						totalCost = apiStreamUsage.totalCost
 					}
 					updateApiReqMsg()
-					await this.saveClineMessagesAndUpdateHistory()
+					await this.saveskylineMessagesAndUpdateHistory()
 					await this.postStateToWebview()
 				})
 			}
 
 			// need to call here in case the stream was aborted
 			if (this.abort) {
-				throw new Error("Cline instance aborted")
+				throw new Error("skyline instance aborted")
 			}
 
 			this.didCompleteReadingStream = true
@@ -3997,7 +4006,7 @@ export class Task {
 			}
 
 			updateApiReqMsg()
-			await this.saveClineMessagesAndUpdateHistory()
+			await this.saveskylineMessagesAndUpdateHistory()
 			await this.postStateToWebview()
 
 			// now add to apiconversationhistory
@@ -4039,7 +4048,7 @@ export class Task {
 					this.consecutiveMistakeCount++
 				}
 
-				const recDidEndLoop = await this.recursivelyMakeClineRequests(this.userMessageContent)
+				const recDidEndLoop = await this.recursivelyMakeskylineRequests(this.userMessageContent)
 				didEndLoop = recDidEndLoop
 			} else {
 				// if there's no assistant_responses, that means we got no text or tool_use content blocks from API which we should assume is an error
@@ -4066,8 +4075,8 @@ export class Task {
 	}
 
 	async loadContext(userContent: UserContent, includeFileDetails: boolean = false): Promise<[UserContent, string, boolean]> {
-		// Track if we need to check clinerulesFile
-		let needsClinerulesFileCheck = false
+		// Track if we need to check skylinerulesFile
+		let needsskylinerulesFileCheck = false
 
 		const workflowToggles = await refreshWorkflowToggles(this.getContext(), cwd)
 
@@ -4093,13 +4102,13 @@ export class Task {
 							)
 
 							// when parsing slash commands, we still want to allow the user to provide their desired context
-							const { processedText, needsClinerulesFileCheck: needsCheck } = await parseSlashCommands(
+							const { processedText, needsskylinerulesFileCheck: needsCheck } = await parseSlashCommands(
 								parsedText,
 								workflowToggles,
 							)
 
 							if (needsCheck) {
-								needsClinerulesFileCheck = true
+								needsskylinerulesFileCheck = true
 							}
 
 							return {
@@ -4119,28 +4128,28 @@ export class Task {
 			this.getEnvironmentDetails(includeFileDetails),
 		])
 
-		// After processing content, check clinerulesData if needed
-		let clinerulesError = false
-		if (needsClinerulesFileCheck) {
-			clinerulesError = await ensureLocalClineDirExists(cwd, GlobalFileNames.clineRules)
+		// After processing content, check skylinerulesData if needed
+		let skylinerulesError = false
+		if (needsskylinerulesFileCheck) {
+			skylinerulesError = await ensureLocalskylineDirExists(cwd, GlobalFileNames.skylineRules)
 		}
 
 		// Return all results
-		return [processedUserContent, environmentDetails, clinerulesError]
+		return [processedUserContent, environmentDetails, skylinerulesError]
 	}
 
 	async getEnvironmentDetails(includeFileDetails: boolean = false) {
 		let details = ""
 
-		// It could be useful for cline to know if the user went from one or no file to another between messages, so we always include this context
+		// It could be useful for skyline to know if the user went from one or no file to another between messages, so we always include this context
 		details += "\n\n# VSCode Visible Files"
 		const visibleFilePaths = vscode.window.visibleTextEditors
 			?.map((editor) => editor.document?.uri?.fsPath)
 			.filter(Boolean)
 			.map((absolutePath) => path.relative(cwd, absolutePath))
 
-		// Filter paths through clineIgnoreController
-		const allowedVisibleFiles = this.clineIgnoreController
+		// Filter paths through skylineIgnoreController
+		const allowedVisibleFiles = this.skylineIgnoreController
 			.filterPaths(visibleFilePaths)
 			.map((p) => p.toPosix())
 			.join("\n")
@@ -4158,8 +4167,8 @@ export class Task {
 			.filter(Boolean)
 			.map((absolutePath) => path.relative(cwd, absolutePath))
 
-		// Filter paths through clineIgnoreController
-		const allowedOpenTabs = this.clineIgnoreController
+		// Filter paths through skylineIgnoreController
+		const allowedOpenTabs = this.skylineIgnoreController
 			.filterPaths(openTabPaths)
 			.map((p) => p.toPosix())
 			.join("\n")
@@ -4192,7 +4201,7 @@ export class Task {
 		// we want to get diagnostics AFTER terminal cools down for a few reasons: terminal could be scaffolding a project, dev servers (compilers like webpack) will first re-compile and then send diagnostics, etc
 		/*
 		let diagnosticsDetails = ""
-		const diagnostics = await this.diagnosticsMonitor.getCurrentDiagnostics(this.didEditFile || terminalWasBusy) // if cline ran a command (ie npm install) or edited the workspace then wait a bit for updated diagnostics
+		const diagnostics = await this.diagnosticsMonitor.getCurrentDiagnostics(this.didEditFile || terminalWasBusy) // if skyline ran a command (ie npm install) or edited the workspace then wait a bit for updated diagnostics
 		for (const [uri, fileDiagnostics] of diagnostics) {
 			const problems = fileDiagnostics.filter((d) => d.severity === vscode.DiagnosticSeverity.Error)
 			if (problems.length > 0) {
@@ -4289,7 +4298,7 @@ export class Task {
 				details += "(Desktop files not shown automatically. Use list_files to explore if needed.)"
 			} else {
 				const [files, didHitLimit] = await listFiles(cwd, true, 200)
-				const result = formatResponse.formatFilesList(cwd, files, didHitLimit, this.clineIgnoreController)
+				const result = formatResponse.formatFilesList(cwd, files, didHitLimit, this.skylineIgnoreController)
 				details += result
 			}
 		}
@@ -4298,7 +4307,7 @@ export class Task {
 		const { contextWindow, maxAllowedSize } = getContextWindowInfo(this.api)
 
 		// Get the token count from the most recent API request to accurately reflect context management
-		const getTotalTokensFromApiReqMessage = (msg: ClineMessage) => {
+		const getTotalTokensFromApiReqMessage = (msg: skylineMessage) => {
 			if (!msg.text) {
 				return 0
 			}
@@ -4310,7 +4319,7 @@ export class Task {
 			}
 		}
 
-		const modifiedMessages = combineApiRequests(combineCommandSequences(this.clineMessages.slice(1)))
+		const modifiedMessages = combineApiRequests(combineCommandSequences(this.skylineMessages.slice(1)))
 		const lastApiReqMessage = findLast(modifiedMessages, (msg) => {
 			if (msg.say !== "api_req_started") {
 				return false

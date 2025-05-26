@@ -4,17 +4,17 @@ import { getTaskMetadata, saveTaskMetadata } from "@core/storage/disk"
 import type { FileMetadataEntry } from "./ContextTrackerTypes"
 
 // This class is responsible for tracking file operations that may result in stale context.
-// If a user modifies a file outside of Cline, the context may become stale and need to be updated.
-// We do not want Cline to reload the context every time a file is modified, so we use this class merely
-// to inform Cline that the change has occurred, and tell Cline to reload the file before making
-// any changes to it. This fixes an issue with diff editing, where Cline was unable to complete a diff edit.
-// a diff edit because the file was modified since Cline last read it.
+// If a user modifies a file outside of skyline, the context may become stale and need to be updated.
+// We do not want skyline to reload the context every time a file is modified, so we use this class merely
+// to inform skyline that the change has occurred, and tell skyline to reload the file before making
+// any changes to it. This fixes an issue with diff editing, where skyline was unable to complete a diff edit.
+// a diff edit because the file was modified since skyline last read it.
 
 // FileContextTracker
 //
 // This class is responsible for tracking file operations.
-// If the full contents of a file are pass to Cline via a tool, mention, or edit, the file is marked as active.
-// If a file is modified outside of Cline, we detect and track this change to prevent stale context.
+// If the full contents of a file are pass to skyline via a tool, mention, or edit, the file is marked as active.
+// If a file is modified outside of skyline, we detect and track this change to prevent stale context.
 export class FileContextTracker {
 	private context: vscode.ExtensionContext
 	readonly taskId: string
@@ -22,7 +22,7 @@ export class FileContextTracker {
 	// File tracking and watching
 	private fileWatchers = new Map<string, vscode.FileSystemWatcher>()
 	private recentlyModifiedFiles = new Set<string>()
-	private recentlyEditedByCline = new Set<string>()
+	private recentlyEditedByskyline = new Set<string>()
 
 	constructor(context: vscode.ExtensionContext, taskId: string) {
 		this.context = context
@@ -58,10 +58,10 @@ export class FileContextTracker {
 
 		// Track file changes
 		watcher.onDidChange(() => {
-			if (this.recentlyEditedByCline.has(filePath)) {
-				this.recentlyEditedByCline.delete(filePath) // This was an edit by Cline, no need to inform Cline
+			if (this.recentlyEditedByskyline.has(filePath)) {
+				this.recentlyEditedByskyline.delete(filePath) // This was an edit by skyline, no need to inform skyline
 			} else {
-				this.recentlyModifiedFiles.add(filePath) // This was a user edit, we will inform Cline
+				this.recentlyModifiedFiles.add(filePath) // This was a user edit, we will inform skyline
 				this.trackFileContext(filePath, "user_edited") // Update the task metadata with file tracking
 			}
 		})
@@ -71,8 +71,8 @@ export class FileContextTracker {
 	}
 
 	// Tracks a file operation in metadata and sets up a watcher for the file
-	// This is the main entry point for FileContextTracker and is called when a file is passed to Cline via a tool, mention, or edit.
-	async trackFileContext(filePath: string, operation: "read_tool" | "user_edited" | "cline_edited" | "file_mentioned") {
+	// This is the main entry point for FileContextTracker and is called when a file is passed to skyline via a tool, mention, or edit.
+	async trackFileContext(filePath: string, operation: "read_tool" | "user_edited" | "skyline_edited" | "file_mentioned") {
 		try {
 			const cwd = this.getCwd()
 			if (!cwd) {
@@ -122,8 +122,8 @@ export class FileContextTracker {
 				path: filePath,
 				record_state: "active",
 				record_source: source,
-				cline_read_date: getLatestDateForField(filePath, "cline_read_date"),
-				cline_edit_date: getLatestDateForField(filePath, "cline_edit_date"),
+				skyline_read_date: getLatestDateForField(filePath, "skyline_read_date"),
+				skyline_edit_date: getLatestDateForField(filePath, "skyline_edit_date"),
 				user_edit_date: getLatestDateForField(filePath, "user_edit_date"),
 			}
 
@@ -134,16 +134,16 @@ export class FileContextTracker {
 					this.recentlyModifiedFiles.add(filePath)
 					break
 
-				// cline_edited: Cline has edited the file
-				case "cline_edited":
-					newEntry.cline_read_date = now
-					newEntry.cline_edit_date = now
+				// skyline_edited: skyline has edited the file
+				case "skyline_edited":
+					newEntry.skyline_read_date = now
+					newEntry.skyline_edit_date = now
 					break
 
-				// read_tool/file_mentioned: Cline has read the file via a tool or file mention
+				// read_tool/file_mentioned: skyline has read the file via a tool or file mention
 				case "read_tool":
 				case "file_mentioned":
-					newEntry.cline_read_date = now
+					newEntry.skyline_read_date = now
 					break
 			}
 
@@ -161,9 +161,9 @@ export class FileContextTracker {
 		return files
 	}
 
-	// Marks a file as edited by Cline to prevent false positives in file watchers
-	markFileAsEditedByCline(filePath: string): void {
-		this.recentlyEditedByCline.add(filePath)
+	// Marks a file as edited by skyline to prevent false positives in file watchers
+	markFileAsEditedByskyline(filePath: string): void {
+		this.recentlyEditedByskyline.add(filePath)
 	}
 
 	// Disposes all file watchers

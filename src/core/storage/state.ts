@@ -10,7 +10,7 @@ import { BrowserSettings } from "@shared/BrowserSettings"
 import { ChatSettings } from "@shared/ChatSettings"
 import { TelemetrySetting } from "@shared/TelemetrySetting"
 import { UserInfo } from "@shared/UserInfo"
-import { ClineRulesToggles } from "@shared/cline-rules"
+import { skylineRulesToggles } from "@shared/skyline-rules"
 /*
 	Storage
 	https://dev.to/kompotkot/how-to-use-secretstorage-in-your-vscode-extensions-2hco
@@ -52,7 +52,7 @@ export async function getWorkspaceState(context: vscode.ExtensionContext, key: s
 }
 
 async function migrateMcpMarketplaceEnableSetting(mcpMarketplaceEnabledRaw: boolean | undefined): Promise<boolean> {
-	const config = vscode.workspace.getConfiguration("cline")
+	const config = vscode.workspace.getConfiguration("skyline")
 	const mcpMarketplaceEnabled = config.get<boolean>("mcpMarketplace.enabled")
 	if (mcpMarketplaceEnabled !== undefined) {
 		// Remove from VSCode configuration
@@ -64,7 +64,7 @@ async function migrateMcpMarketplaceEnableSetting(mcpMarketplaceEnabledRaw: bool
 }
 
 async function migrateEnableCheckpointsSetting(enableCheckpointsSettingRaw: boolean | undefined): Promise<boolean> {
-	const config = vscode.workspace.getConfiguration("cline")
+	const config = vscode.workspace.getConfiguration("skyline")
 	const enableCheckpoints = config.get<boolean>("enableCheckpoints")
 	if (enableCheckpoints !== undefined) {
 		// Remove from VSCode configuration
@@ -81,7 +81,7 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 		apiModelId,
 		apiKey,
 		openRouterApiKey,
-		clineApiKey,
+		skylineApiKey,
 		awsAccessKey,
 		awsSecretKey,
 		awsSessionToken,
@@ -157,7 +157,7 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 		sambanovaApiKey,
 		planActSeparateModelsSettingRaw,
 		favoritedModelIds,
-		globalClineRulesToggles,
+		globalskylineRulesToggles,
 		requestTimeoutMs,
 		shellIntegrationTimeout,
 		enableCheckpointsSettingRaw,
@@ -168,7 +168,7 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 		getGlobalState(context, "apiModelId") as Promise<string | undefined>,
 		getSecret(context, "apiKey") as Promise<string | undefined>,
 		getSecret(context, "openRouterApiKey") as Promise<string | undefined>,
-		getSecret(context, "clineApiKey") as Promise<string | undefined>,
+		getSecret(context, "skylineApiKey") as Promise<string | undefined>,
 		getSecret(context, "awsAccessKey") as Promise<string | undefined>,
 		getSecret(context, "awsSecretKey") as Promise<string | undefined>,
 		getSecret(context, "awsSessionToken") as Promise<string | undefined>,
@@ -244,7 +244,7 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 		getSecret(context, "sambanovaApiKey") as Promise<string | undefined>,
 		getGlobalState(context, "planActSeparateModelsSetting") as Promise<boolean | undefined>,
 		getGlobalState(context, "favoritedModelIds") as Promise<string[] | undefined>,
-		getGlobalState(context, "globalClineRulesToggles") as Promise<ClineRulesToggles | undefined>,
+		getGlobalState(context, "globalskylineRulesToggles") as Promise<skylineRulesToggles | undefined>,
 		getGlobalState(context, "requestTimeoutMs") as Promise<number | undefined>,
 		getGlobalState(context, "shellIntegrationTimeout") as Promise<number | undefined>,
 		getGlobalState(context, "enableCheckpointsSetting") as Promise<boolean | undefined>,
@@ -266,7 +266,7 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 		}
 	}
 
-	const localClineRulesToggles = (await getWorkspaceState(context, "localClineRulesToggles")) as ClineRulesToggles
+	const localskylineRulesToggles = (await getWorkspaceState(context, "localskylineRulesToggles")) as skylineRulesToggles
 
 	const mcpMarketplaceEnabled = await migrateMcpMarketplaceEnableSetting(mcpMarketplaceEnabledRaw)
 	const enableCheckpointsSetting = await migrateEnableCheckpointsSetting(enableCheckpointsSettingRaw)
@@ -295,7 +295,7 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 			apiModelId,
 			apiKey,
 			openRouterApiKey,
-			clineApiKey,
+			skylineApiKey,
 			awsAccessKey,
 			awsSecretKey,
 			awsSessionToken,
@@ -361,8 +361,8 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 		customInstructions,
 		taskHistory,
 		autoApprovalSettings: autoApprovalSettings || DEFAULT_AUTO_APPROVAL_SETTINGS, // default value can be 0 or empty string
-		globalClineRulesToggles: globalClineRulesToggles || {},
-		localClineRulesToggles: localClineRulesToggles || {},
+		globalskylineRulesToggles: globalskylineRulesToggles || {},
+		localskylineRulesToggles: localskylineRulesToggles || {},
 		browserSettings: { ...DEFAULT_BROWSER_SETTINGS, ...browserSettings }, // this will ensure that older versions of browserSettings (e.g. before remoteBrowserEnabled was added) are merged with the default values (false for remoteBrowserEnabled)
 		chatSettings: {
 			...DEFAULT_CHAT_SETTINGS, // Apply defaults first
@@ -443,7 +443,7 @@ export async function updateApiConfiguration(context: vscode.ExtensionContext, a
 		xaiApiKey,
 		thinkingBudgetTokens,
 		reasoningEffort,
-		clineApiKey,
+		skylineApiKey,
 		sambanovaApiKey,
 		favoritedModelIds,
 	} = apiConfiguration
@@ -503,7 +503,7 @@ export async function updateApiConfiguration(context: vscode.ExtensionContext, a
 	await updateGlobalState(context, "asksageApiUrl", asksageApiUrl)
 	await updateGlobalState(context, "thinkingBudgetTokens", thinkingBudgetTokens)
 	await updateGlobalState(context, "reasoningEffort", reasoningEffort)
-	await storeSecret(context, "clineApiKey", clineApiKey)
+	await storeSecret(context, "skylineApiKey", skylineApiKey)
 	await storeSecret(context, "sambanovaApiKey", sambanovaApiKey)
 	await updateGlobalState(context, "favoritedModelIds", favoritedModelIds)
 	await updateGlobalState(context, "requestTimeoutMs", apiConfiguration.requestTimeoutMs)
@@ -528,7 +528,7 @@ export async function resetExtensionState(context: vscode.ExtensionContext) {
 		"qwenApiKey",
 		"doubaoApiKey",
 		"mistralApiKey",
-		"clineApiKey",
+		"skylineApiKey",
 		"liteLlmApiKey",
 		"fireworksApiKey",
 		"asksageApiKey",

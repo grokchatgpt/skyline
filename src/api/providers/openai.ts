@@ -95,8 +95,8 @@ export class OpenAiHandler implements ApiHandler {
 
 			if (chunk.usage) {
 				// Use any cast to access cache fields that aren't in OpenAI SDK types
-				const cacheWriteTokens = (chunk.usage as any)['cache_creation_input_tokens'] || 0
-				const cacheReadTokens = (chunk.usage as any)['cache_read_input_tokens'] || 0
+				const cacheWriteTokens = (chunk.usage as any)["cache_creation_input_tokens"] || 0
+				const cacheReadTokens = (chunk.usage as any)["cache_read_input_tokens"] || 0
 
 				yield {
 					type: "usage",

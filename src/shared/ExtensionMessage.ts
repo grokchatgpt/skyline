@@ -8,8 +8,8 @@ import { ChatSettings } from "./ChatSettings"
 import { HistoryItem } from "./HistoryItem"
 import { McpServer, McpMarketplaceCatalog, McpDownloadResponse, McpViewTab } from "./mcp"
 import { TelemetrySetting } from "./TelemetrySetting"
-import type { BalanceResponse, UsageTransaction, PaymentTransaction } from "../shared/ClineAccount"
-import { ClineRulesToggles } from "./cline-rules"
+import type { BalanceResponse, UsageTransaction, PaymentTransaction } from "../shared/skylineAccount"
+import { skylineRulesToggles } from "./skyline-rules"
 
 // webview will hold state
 export interface ExtensionMessage {
@@ -62,7 +62,7 @@ export interface ExtensionMessage {
 	lmStudioModels?: string[]
 	vsCodeLmModels?: { vendor?: string; family?: string; version?: string; id?: string }[]
 	filePaths?: string[]
-	partialMessage?: ClineMessage
+	partialMessage?: skylineMessage
 	openRouterModels?: Record<string, ModelInfo>
 	openAiModels?: string[]
 	requestyModels?: Record<string, ModelInfo>
@@ -122,7 +122,7 @@ export interface ExtensionState {
 	remoteBrowserHost?: string
 	chatSettings: ChatSettings
 	checkpointTrackerErrorMessage?: string
-	clineMessages: ClineMessage[]
+	skylineMessages: skylineMessage[]
 	currentTaskItem?: HistoryItem
 	customInstructions?: string
 	mcpMarketplaceEnabled?: boolean
@@ -141,18 +141,18 @@ export interface ExtensionState {
 	}
 	version: string
 	vscMachineId: string
-	globalClineRulesToggles: ClineRulesToggles
-	localClineRulesToggles: ClineRulesToggles
-	workflowToggles: ClineRulesToggles
-	localCursorRulesToggles: ClineRulesToggles
-	localWindsurfRulesToggles: ClineRulesToggles
+	globalskylineRulesToggles: skylineRulesToggles
+	localskylineRulesToggles: skylineRulesToggles
+	workflowToggles: skylineRulesToggles
+	localCursorRulesToggles: skylineRulesToggles
+	localWindsurfRulesToggles: skylineRulesToggles
 }
 
-export interface ClineMessage {
+export interface skylineMessage {
 	ts: number
 	type: "ask" | "say"
-	ask?: ClineAsk
-	say?: ClineSay
+	ask?: skylineAsk
+	say?: skylineSay
 	text?: string
 	reasoning?: string
 	images?: string[]
@@ -164,7 +164,7 @@ export interface ClineMessage {
 	conversationHistoryDeletedRange?: [number, number] // for when conversation history is truncated for API requests
 }
 
-export type ClineAsk =
+export type skylineAsk =
 	| "followup"
 	| "plan_mode_respond"
 	| "command"
@@ -182,7 +182,7 @@ export type ClineAsk =
 	| "condense"
 	| "report_bug"
 
-export type ClineSay =
+export type skylineSay =
 	| "task"
 	| "error"
 	| "api_req_started"
@@ -205,11 +205,11 @@ export type ClineSay =
 	| "use_mcp_server"
 	| "diff_error"
 	| "deleted_api_reqs"
-	| "clineignore_error"
+	| "skylineignore_error"
 	| "checkpoint_created"
 	| "load_mcp_documentation"
 
-export interface ClineSayTool {
+export interface skylineSayTool {
 	tool:
 		| "editedExistingFile"
 		| "newFileCreated"
@@ -230,7 +230,7 @@ export interface ClineSayTool {
 export const browserActions = ["launch", "click", "type", "scroll_down", "scroll_up", "close"] as const
 export type BrowserAction = (typeof browserActions)[number]
 
-export interface ClineSayBrowserAction {
+export interface skylineSayBrowserAction {
 	action: BrowserAction
 	coordinate?: string
 	text?: string
@@ -243,7 +243,7 @@ export type BrowserActionResult = {
 	currentMousePosition?: string
 }
 
-export interface ClineAskUseMcpServer {
+export interface skylineAskUseMcpServer {
 	serverName: string
 	type: "use_mcp_tool" | "access_mcp_resource"
 	toolName?: string
@@ -251,33 +251,33 @@ export interface ClineAskUseMcpServer {
 	uri?: string
 }
 
-export interface ClinePlanModeResponse {
+export interface skylinePlanModeResponse {
 	response: string
 	options?: string[]
 	selected?: string
 }
 
-export interface ClineAskQuestion {
+export interface skylineAskQuestion {
 	question: string
 	options?: string[]
 	selected?: string
 }
 
-export interface ClineAskNewTask {
+export interface skylineAskNewTask {
 	context: string
 }
 
-export interface ClineApiReqInfo {
+export interface skylineApiReqInfo {
 	request?: string
 	tokensIn?: number
 	tokensOut?: number
 	cacheWrites?: number
 	cacheReads?: number
 	cost?: number
-	cancelReason?: ClineApiReqCancelReason
+	cancelReason?: skylineApiReqCancelReason
 	streamingFailedMessage?: string
 }
 
-export type ClineApiReqCancelReason = "streaming_failed" | "user_cancelled"
+export type skylineApiReqCancelReason = "streaming_failed" | "user_cancelled"
 
 export const COMPLETION_RESULT_CHANGES_FLAG = "HAS_CHANGES"

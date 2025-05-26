@@ -1,12 +1,12 @@
-# Cline Evaluation System
+# skyline Evaluation System
 
-This directory contains the evaluation system for benchmarking Cline against various coding evaluation frameworks.
+This directory contains the evaluation system for benchmarking skyline against various coding evaluation frameworks.
 
 ## Overview
 
-The Cline Evaluation System allows you to:
+The skyline Evaluation System allows you to:
 
-1. Run Cline against standardized coding benchmarks
+1. Run skyline against standardized coding benchmarks
 2. Collect comprehensive metrics on performance
 3. Generate detailed reports on evaluation results
 4. Compare performance across different models and benchmarks
@@ -21,7 +21,7 @@ The evaluation system consists of two main components:
 ## Directory Structure
 
 ```
-cline-repo/
+skyline-repo/
 ├── src/
 │   ├── services/
 │   │   ├── test/
@@ -57,15 +57,15 @@ cline-repo/
 ### Prerequisites
 
 - Node.js 16+
-- VSCode with Cline extension installed
+- VSCode with skyline extension installed
 - Git
 
 ### Activation Mechanism
 
-The evaluation system uses an `evals.env` file approach to activate test mode in the Cline extension. When an evaluation is run:
+The evaluation system uses an `evals.env` file approach to activate test mode in the skyline extension. When an evaluation is run:
 
 1. The CLI creates an `evals.env` file in the workspace directory
-2. The Cline extension activates due to the `workspaceContains:evals.env` activation event
+2. The skyline extension activates due to the `workspaceContains:evals.env` activation event
 3. The extension detects this file and automatically enters test mode
 4. After evaluation completes, the file is automatically removed
 

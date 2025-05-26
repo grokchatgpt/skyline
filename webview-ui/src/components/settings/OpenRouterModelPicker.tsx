@@ -39,7 +39,7 @@ export interface OpenRouterModelPickerProps {
 	isPopup?: boolean
 }
 
-// Featured models for Cline provider
+// Featured models for skyline provider
 const featuredModels = [
 	{
 		id: "anthropic/claude-3.7-sonnet",
@@ -106,7 +106,7 @@ const OpenRouterModelPicker: React.FC<OpenRouterModelPickerProps> = ({ isPopup }
 	const modelIds = useMemo(() => {
 		const unfilteredModelIds = Object.keys(openRouterModels).sort((a, b) => a.localeCompare(b))
 
-		return apiConfiguration?.apiProvider === "cline"
+		return apiConfiguration?.apiProvider === "skyline"
 			? unfilteredModelIds.filter((id) => !id.includes(":free"))
 			: unfilteredModelIds
 	}, [openRouterModels, apiConfiguration?.apiProvider])
@@ -220,7 +220,7 @@ const OpenRouterModelPicker: React.FC<OpenRouterModelPickerProps> = ({ isPopup }
 					<span style={{ fontWeight: 500 }}>Model</span>
 				</label>
 
-				{apiConfiguration?.apiProvider === "cline" && (
+				{apiConfiguration?.apiProvider === "skyline" && (
 					<div style={{ marginBottom: "6px", marginTop: 4 }}>
 						{featuredModels.map((model) => (
 							<FeaturedModelCard
@@ -332,7 +332,7 @@ const OpenRouterModelPicker: React.FC<OpenRouterModelPickerProps> = ({ isPopup }
 						<VSCodeLink style={{ display: "inline", fontSize: "inherit" }} href="https://openrouter.ai/models">
 							OpenRouter.
 						</VSCodeLink>
-						If you're unsure which model to choose, Cline works best with{" "}
+						If you're unsure which model to choose, skyline works best with{" "}
 						<VSCodeLink
 							style={{ display: "inline", fontSize: "inherit" }}
 							onClick={() => handleModelChange("anthropic/claude-3.7-sonnet")}>

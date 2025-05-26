@@ -32,43 +32,43 @@ export interface ServiceHandlerConfig {
  * Map of service names to their handler configurations
  */
 export const serviceHandlers: Record<string, ServiceHandlerConfig> = {
-	"cline.AccountService": {
+	"skyline.AccountService": {
 		requestHandler: handleAccountServiceRequest,
 		streamingHandler: handleAccountServiceStreamingRequest,
 	},
-	"cline.BrowserService": {
+	"skyline.BrowserService": {
 		requestHandler: handleBrowserServiceRequest,
 		streamingHandler: handleBrowserServiceStreamingRequest,
 	},
-	"cline.CheckpointsService": {
+	"skyline.CheckpointsService": {
 		requestHandler: handleCheckpointsServiceRequest,
 		streamingHandler: handleCheckpointsServiceStreamingRequest,
 	},
-	"cline.FileService": {
+	"skyline.FileService": {
 		requestHandler: handleFileServiceRequest,
 		streamingHandler: handleFileServiceStreamingRequest,
 	},
-	"cline.McpService": {
+	"skyline.McpService": {
 		requestHandler: handleMcpServiceRequest,
 		streamingHandler: handleMcpServiceStreamingRequest,
 	},
-	"cline.StateService": {
+	"skyline.StateService": {
 		requestHandler: handleStateServiceRequest,
 		streamingHandler: handleStateServiceStreamingRequest,
 	},
-	"cline.TaskService": {
+	"skyline.TaskService": {
 		requestHandler: handleTaskServiceRequest,
 		streamingHandler: handleTaskServiceStreamingRequest,
 	},
-	"cline.WebService": {
+	"skyline.WebService": {
 		requestHandler: handleWebServiceRequest,
 		streamingHandler: handleWebServiceStreamingRequest,
 	},
-	"cline.ModelsService": {
+	"skyline.ModelsService": {
 		requestHandler: handleModelsServiceRequest,
 		streamingHandler: handleModelsServiceStreamingRequest,
 	},
-	"cline.SlashService": {
+	"skyline.SlashService": {
 		requestHandler: handleSlashServiceRequest,
 		streamingHandler: handleSlashServiceStreamingRequest,
 	},

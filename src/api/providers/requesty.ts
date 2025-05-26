@@ -17,8 +17,8 @@ export class RequestyHandler implements ApiHandler {
 			baseURL: "https://router.requesty.ai/v1",
 			apiKey: this.options.requestyApiKey,
 			defaultHeaders: {
-				"HTTP-Referer": "https://cline.bot",
-				"X-Title": "Cline",
+				"HTTP-Referer": "https://skyline.bot",
+				"X-Title": "skyline",
 			},
 		})
 	}

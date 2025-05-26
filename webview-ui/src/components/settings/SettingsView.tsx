@@ -247,13 +247,13 @@ const SettingsView = ({ onDone }: SettingsViewProps) => {
 						Allow anonymous error and usage reporting
 					</VSCodeCheckbox>
 					<p className="text-xs mt-[5px] text-[var(--vscode-descriptionForeground)]">
-						Help improve Cline by sending anonymous usage data and error reports. No code, prompts, or personal
+						Help improve skyline by sending anonymous usage data and error reports. No code, prompts, or personal
 						information are ever sent. See our{" "}
-						<VSCodeLink href="https://docs.cline.bot/more-info/telemetry" className="text-inherit">
+						<VSCodeLink href="https://docs.skyline.bot/more-info/telemetry" className="text-inherit">
 							telemetry overview
 						</VSCodeLink>{" "}
 						and{" "}
-						<VSCodeLink href="https://cline.bot/privacy" className="text-inherit">
+						<VSCodeLink href="https://skyline.bot/privacy" className="text-inherit">
 							privacy policy
 						</VSCodeLink>{" "}
 						for more details.
@@ -287,8 +287,8 @@ const SettingsView = ({ onDone }: SettingsViewProps) => {
 				<div className="text-center text-[var(--vscode-descriptionForeground)] text-xs leading-[1.2] px-0 py-0 pr-2 pb-[15px] mt-auto">
 					<p className="break-words m-0 p-0">
 						If you have any questions or feedback, feel free to open an issue at{" "}
-						<VSCodeLink href="https://github.com/cline/cline" className="inline">
-							https://github.com/cline/cline
+						<VSCodeLink href="https://github.com/skyline/skyline" className="inline">
+							https://github.com/skyline/skyline
 						</VSCodeLink>
 					</p>
 					<p className="italic mt-[10px] mb-0 p-0">v{version}</p>

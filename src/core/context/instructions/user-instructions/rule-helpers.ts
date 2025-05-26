@@ -3,7 +3,7 @@ import { ensureRulesDirectoryExists, GlobalFileNames } from "@core/storage/disk"
 import { getGlobalState, getWorkspaceState, updateGlobalState, updateWorkspaceState } from "@core/storage/state"
 import * as path from "path"
 import fs from "fs/promises"
-import { ClineRulesToggles } from "@shared/cline-rules"
+import { skylineRulesToggles } from "@shared/skyline-rules"
 import * as vscode from "vscode"
 
 /**
@@ -38,10 +38,10 @@ export async function readDirectoryRecursive(
  */
 export async function synchronizeRuleToggles(
 	rulesDirectoryPath: string,
-	currentToggles: ClineRulesToggles,
+	currentToggles: skylineRulesToggles,
 	allowedFileExtension: string = "",
 	excludedPaths: string[][] = [],
-): Promise<ClineRulesToggles> {
+): Promise<skylineRulesToggles> {
 	// Create a copy of toggles to modify
 	const updatedToggles = { ...currentToggles }
 
@@ -105,14 +105,14 @@ export async function synchronizeRuleToggles(
 /**
  * Certain project rules have more than a single location where rules are allowed to be stored
  */
-export function combineRuleToggles(toggles1: ClineRulesToggles, toggles2: ClineRulesToggles): ClineRulesToggles {
+export function combineRuleToggles(toggles1: skylineRulesToggles, toggles2: skylineRulesToggles): skylineRulesToggles {
 	return { ...toggles1, ...toggles2 }
 }
 
 /**
  * Read the content of rules files
  */
-export const getRuleFilesTotalContent = async (rulesFilePaths: string[], basePath: string, toggles: ClineRulesToggles) => {
+export const getRuleFilesTotalContent = async (rulesFilePaths: string[], basePath: string, toggles: skylineRulesToggles) => {
 	const ruleFilesTotalContent = await Promise.all(
 		rulesFilePaths.map(async (filePath) => {
 			const ruleFilePath = path.resolve(basePath, filePath)
@@ -129,31 +129,31 @@ export const getRuleFilesTotalContent = async (rulesFilePaths: string[], basePat
 }
 
 /**
- * Handles converting any directory into a file (specifically used for .clinerules and .clinerules/workflows)
- * The old .clinerules file or .clinerules/workflows file will be renamed to a default filename
+ * Handles converting any directory into a file (specifically used for .skylinerules and .skylinerules/workflows)
+ * The old .skylinerules file or .skylinerules/workflows file will be renamed to a default filename
  * Doesn't do anything if the dir already exists or doesn't exist
  * Returns whether there are any uncaught errors
  */
-export async function ensureLocalClineDirExists(clinerulePath: string, defaultRuleFilename: string): Promise<boolean> {
+export async function ensureLocalskylineDirExists(skylinerulePath: string, defaultRuleFilename: string): Promise<boolean> {
 	try {
-		const exists = await fileExistsAtPath(clinerulePath)
+		const exists = await fileExistsAtPath(skylinerulePath)
 
-		if (exists && !(await isDirectory(clinerulePath))) {
-			// logic to convert .clinerules file into directory, and rename the rules file to {defaultRuleFilename}
-			const content = await fs.readFile(clinerulePath, "utf8")
-			const tempPath = clinerulePath + ".bak"
-			await fs.rename(clinerulePath, tempPath) // create backup
+		if (exists && !(await isDirectory(skylinerulePath))) {
+			// logic to convert .skylinerules file into directory, and rename the rules file to {defaultRuleFilename}
+			const content = await fs.readFile(skylinerulePath, "utf8")
+			const tempPath = skylinerulePath + ".bak"
+			await fs.rename(skylinerulePath, tempPath) // create backup
 			try {
-				await fs.mkdir(clinerulePath, { recursive: true })
-				await fs.writeFile(path.join(clinerulePath, defaultRuleFilename), content, "utf8")
+				await fs.mkdir(skylinerulePath, { recursive: true })
+				await fs.writeFile(path.join(skylinerulePath, defaultRuleFilename), content, "utf8")
 				await fs.unlink(tempPath).catch(() => {}) // delete backup
 
 				return false // conversion successful with no errors
 			} catch (conversionError) {
 				// attempt to restore backup on conversion failure
 				try {
-					await fs.rm(clinerulePath, { recursive: true, force: true }).catch(() => {})
-					await fs.rename(tempPath, clinerulePath) // restore backup
+					await fs.rm(skylinerulePath, { recursive: true, force: true }).catch(() => {})
+					await fs.rename(tempPath, skylinerulePath) // restore backup
 				} catch (restoreError) {}
 				return true // in either case here we consider this an error
 			}
@@ -172,23 +172,23 @@ export const createRuleFile = async (isGlobal: boolean, filename: string, cwd: s
 	try {
 		let filePath: string
 		if (isGlobal) {
-			// global means its implicitly clinerules
-			const globalClineRulesFilePath = await ensureRulesDirectoryExists()
-			filePath = path.join(globalClineRulesFilePath, filename)
+			// global means its implicitly skylinerules
+			const globalskylineRulesFilePath = await ensureRulesDirectoryExists()
+			filePath = path.join(globalskylineRulesFilePath, filename)
 		} else {
-			const localClineRulesFilePath = path.resolve(cwd, GlobalFileNames.clineRules)
+			const localskylineRulesFilePath = path.resolve(cwd, GlobalFileNames.skylineRules)
 
-			const hasError = await ensureLocalClineDirExists(localClineRulesFilePath, "default-rules.md")
+			const hasError = await ensureLocalskylineDirExists(localskylineRulesFilePath, "default-rules.md")
 			if (hasError === true) {
 				return { filePath: null, fileExists: false }
 			}
 
-			await fs.mkdir(localClineRulesFilePath, { recursive: true })
+			await fs.mkdir(localskylineRulesFilePath, { recursive: true })
 
 			if (type === "workflow") {
 				const localWorkflowsFilePath = path.resolve(cwd, GlobalFileNames.workflows)
 
-				const hasError = await ensureLocalClineDirExists(localWorkflowsFilePath, "default-workflows.md")
+				const hasError = await ensureLocalskylineDirExists(localWorkflowsFilePath, "default-workflows.md")
 				if (hasError === true) {
 					return { filePath: null, fileExists: false }
 				}
@@ -197,8 +197,8 @@ export const createRuleFile = async (isGlobal: boolean, filename: string, cwd: s
 
 				filePath = path.join(localWorkflowsFilePath, filename)
 			} else {
-				// clinerules file creation
-				filePath = path.join(localClineRulesFilePath, filename)
+				// skylinerules file creation
+				filePath = path.join(localskylineRulesFilePath, filename)
 			}
 		}
 
@@ -243,26 +243,26 @@ export async function deleteRuleFile(
 
 		// Update the appropriate toggles
 		if (isGlobal) {
-			const toggles = ((await getGlobalState(context, "globalClineRulesToggles")) as ClineRulesToggles) || {}
+			const toggles = ((await getGlobalState(context, "globalskylineRulesToggles")) as skylineRulesToggles) || {}
 			delete toggles[rulePath]
-			await updateGlobalState(context, "globalClineRulesToggles", toggles)
+			await updateGlobalState(context, "globalskylineRulesToggles", toggles)
 		} else {
 			if (type === "workflow") {
-				const toggles = ((await getWorkspaceState(context, "workflowToggles")) as ClineRulesToggles) || {}
+				const toggles = ((await getWorkspaceState(context, "workflowToggles")) as skylineRulesToggles) || {}
 				delete toggles[rulePath]
 				await updateWorkspaceState(context, "workflowToggles", toggles)
 			} else if (type === "cursor") {
-				const toggles = ((await getWorkspaceState(context, "localCursorRulesToggles")) as ClineRulesToggles) || {}
+				const toggles = ((await getWorkspaceState(context, "localCursorRulesToggles")) as skylineRulesToggles) || {}
 				delete toggles[rulePath]
 				await updateWorkspaceState(context, "localCursorRulesToggles", toggles)
 			} else if (type === "windsurf") {
-				const toggles = ((await getWorkspaceState(context, "localWindsurfRulesToggles")) as ClineRulesToggles) || {}
+				const toggles = ((await getWorkspaceState(context, "localWindsurfRulesToggles")) as skylineRulesToggles) || {}
 				delete toggles[rulePath]
 				await updateWorkspaceState(context, "localWindsurfRulesToggles", toggles)
 			} else {
-				const toggles = ((await getWorkspaceState(context, "localClineRulesToggles")) as ClineRulesToggles) || {}
+				const toggles = ((await getWorkspaceState(context, "localskylineRulesToggles")) as skylineRulesToggles) || {}
 				delete toggles[rulePath]
-				await updateWorkspaceState(context, "localClineRulesToggles", toggles)
+				await updateWorkspaceState(context, "localskylineRulesToggles", toggles)
 			}
 		}
 

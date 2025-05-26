@@ -1,7 +1,7 @@
 import { Controller } from ".."
 import { RuleFileRequest, RuleFile } from "@shared/proto/file"
 import { FileMethodHandler } from "./index"
-import { refreshClineRulesToggles } from "@core/context/instructions/user-instructions/cline-rules"
+import { refreshskylineRulesToggles } from "@core/context/instructions/user-instructions/skyline-rules"
 import { createRuleFile as createRuleFileImpl } from "@core/context/instructions/user-instructions/rule-helpers"
 import * as vscode from "vscode"
 import * as path from "path"
@@ -48,7 +48,7 @@ export const createRuleFile: FileMethodHandler = async (controller: Controller, 
 		if (request.type === "workflow") {
 			await refreshWorkflowToggles(controller.context, cwd)
 		} else {
-			await refreshClineRulesToggles(controller.context, cwd)
+			await refreshskylineRulesToggles(controller.context, cwd)
 		}
 		await controller.postStateToWebview()
 

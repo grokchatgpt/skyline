@@ -10,7 +10,7 @@ tmp
 
 pnpm-lock.yaml
 
-.clineignore
+.skylineignore
 .venv
 .actrc
 

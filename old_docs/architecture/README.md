@@ -1,15 +1,15 @@
-# Cline Extension Architecture
+# skyline Extension Architecture
 
-This directory contains architectural documentation for the Cline VSCode extension.
+This directory contains architectural documentation for the skyline VSCode extension.
 
 ## Extension Architecture Diagram
 
-The [extension-architecture.mmd](./extension-architecture.mmd) file contains a Mermaid diagram showing the high-level architecture of the Cline extension. The diagram illustrates:
+The [extension-architecture.mmd](./extension-architecture.mmd) file contains a Mermaid diagram showing the high-level architecture of the skyline extension. The diagram illustrates:
 
 1. **Core Extension**
    - Extension entry point and main classes
    - State management through VSCode's global state and secrets storage
-   - Core business logic in the Cline class
+   - Core business logic in the skyline class
 
 2. **Webview UI**
    - React-based user interface
@@ -39,5 +39,5 @@ You can also view the diagram on GitHub, which has built-in Mermaid rendering su
 The diagram uses a high-contrast color scheme for better visibility:
 - Pink (#ff0066): Global state and secrets storage components
 - Blue (#0066ff): Extension state context
-- Green (#00cc66): Cline provider
+- Green (#00cc66): skyline provider
 - All components use white text for maximum readability

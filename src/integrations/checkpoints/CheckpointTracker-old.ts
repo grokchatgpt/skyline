@@ -3,19 +3,19 @@ import os from "os"
 import * as path from "path"
 import simpleGit, { SimpleGit } from "simple-git"
 import * as vscode from "vscode"
-import { Controller as ClineProvider } from "@core/controller"
+import { Controller as skylineProvider } from "@core/controller"
 import { fileExistsAtPath } from "@utils/fs"
 import { globby } from "globby"
 
 class CheckpointTracker {
-	private providerRef: WeakRef<ClineProvider>
+	private providerRef: WeakRef<skylineProvider>
 	private taskId: string
 	private disposables: vscode.Disposable[] = []
 	private cwd: string
 	private lastRetrievedShadowGitConfigWorkTree?: string
 	lastCheckpointHash?: string
 
-	private constructor(provider: ClineProvider, taskId: string, cwd: string) {
+	private constructor(provider: skylineProvider, taskId: string, cwd: string) {
 		this.providerRef = new WeakRef(provider)
 		this.taskId = taskId
 		this.cwd = cwd
@@ -24,7 +24,7 @@ class CheckpointTracker {
 	public static async create(
 		taskId: string,
 		enableCheckpointsSetting: boolean,
-		provider?: ClineProvider,
+		provider?: skylineProvider,
 	): Promise<CheckpointTracker | undefined> {
 		try {
 			if (!provider) {
@@ -55,7 +55,7 @@ class CheckpointTracker {
 	private static async getWorkingDirectory(): Promise<string> {
 		const cwd = vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0)
 		if (!cwd) {
-			throw new Error("No workspace detected. Please open Cline in a workspace to use checkpoints.")
+			throw new Error("No workspace detected. Please open skyline in a workspace to use checkpoints.")
 		}
 		const homedir = os.homedir()
 		const desktopPath = path.join(homedir, "Desktop")
@@ -87,7 +87,7 @@ class CheckpointTracker {
 		return gitPath
 	}
 
-	public static async doesShadowGitExist(taskId: string, provider?: ClineProvider): Promise<boolean> {
+	public static async doesShadowGitExist(taskId: string, provider?: skylineProvider): Promise<boolean> {
 		const globalStoragePath = provider?.context.globalStorageUri.fsPath
 		if (!globalStoragePath) {
 			return false
@@ -229,7 +229,7 @@ class CheckpointTracker {
 			)
 
 			// Set up git identity (git throws an error if user.name or user.email is not set)
-			await git.addConfig("user.name", "Cline Checkpoint")
+			await git.addConfig("user.name", "skyline Checkpoint")
 			await git.addConfig("user.email", "noreply@example.com")
 
 			await this.addAllFiles(git)

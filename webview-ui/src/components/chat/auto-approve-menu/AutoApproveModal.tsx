@@ -247,7 +247,7 @@ const AutoApproveModal: React.FC<AutoApproveModalProps> = ({
 				</div>
 
 				<HeroTooltip
-					content="Auto-approve allows Cline to perform the following actions without asking for permission. Please use with caution and only enable if you understand the risks."
+					content="Auto-approve allows skyline to perform the following actions without asking for permission. Please use with caution and only enable if you understand the risks."
 					placement="top">
 					<div className="mb-3">
 						<span className="text-[color:var(--vscode-foreground)] font-medium">Actions:</span>
@@ -299,7 +299,7 @@ const AutoApproveModal: React.FC<AutoApproveModalProps> = ({
 				/>
 
 				<HeroTooltip
-					content="Cline will automatically make this many API requests before asking for approval to proceed with the task."
+					content="skyline will automatically make this many API requests before asking for approval to proceed with the task."
 					placement="top">
 					<div className="flex items-center pl-1.5 my-2">
 						<span className="codicon codicon-settings text-[#CCCCCC] text-[14px]" />

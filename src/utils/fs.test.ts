@@ -6,7 +6,7 @@ import "should"
 import { createDirectoriesForFile, fileExistsAtPath, isDirectory, readDirectory } from "./fs"
 
 describe("Filesystem Utilities", () => {
-	const tmpDir = path.join(os.tmpdir(), "cline-test-" + Math.random().toString(36).slice(2))
+	const tmpDir = path.join(os.tmpdir(), "skyline-test-" + Math.random().toString(36).slice(2))
 
 	// Clean up after tests
 	after(async () => {
@@ -198,30 +198,30 @@ describe("Filesystem Utilities", () => {
 		files.sort().should.deepEqual(expectedFiles.sort())
 	})
 
-	it("should exclude .clinerules/workflows directory specifically", async () => {
+	it("should exclude .skylinerules/workflows directory specifically", async () => {
 		// Create a test directory structure
-		const clinerulesDirTest = path.join(tmpDir, "clinerules-test")
-		const clinerulesDirPath = path.join(clinerulesDirTest, ".clinerules")
+		const skylinerulesDirTest = path.join(tmpDir, "skylinerules-test")
+		const skylinerulesDirPath = path.join(skylinerulesDirTest, ".skylinerules")
 
-		// Create .clinerules directory and root files
-		await fs.mkdir(clinerulesDirPath, { recursive: true })
-		await fs.writeFile(path.join(clinerulesDirPath, "config.json"), "{}")
-		await fs.writeFile(path.join(clinerulesDirPath, "settings.js"), "// settings")
+		// Create .skylinerules directory and root files
+		await fs.mkdir(skylinerulesDirPath, { recursive: true })
+		await fs.writeFile(path.join(skylinerulesDirPath, "config.json"), "{}")
+		await fs.writeFile(path.join(skylinerulesDirPath, "settings.js"), "// settings")
 
-		// Create .clinerules/other directory and files
-		const otherDirPath = path.join(clinerulesDirPath, "other")
+		// Create .skylinerules/other directory and files
+		const otherDirPath = path.join(skylinerulesDirPath, "other")
 		await fs.mkdir(otherDirPath, { recursive: true })
 		await fs.writeFile(path.join(otherDirPath, "helper.js"), "// helper code")
 		await fs.writeFile(path.join(otherDirPath, "util.js"), "// util functions")
 
-		// Create .clinerules/workflows directory and files
-		const workflowsDirPath = path.join(clinerulesDirPath, "workflows")
+		// Create .skylinerules/workflows directory and files
+		const workflowsDirPath = path.join(skylinerulesDirPath, "workflows")
 		await fs.mkdir(workflowsDirPath, { recursive: true })
 		await fs.writeFile(path.join(workflowsDirPath, "workflow1.js"), "// workflow1")
 		await fs.writeFile(path.join(workflowsDirPath, "workflow2.js"), "// workflow2")
 
 		// Get all files WITHOUT exclusion
-		const allFiles = await readDirectory(clinerulesDirPath)
+		const allFiles = await readDirectory(skylinerulesDirPath)
 
 		// Verify all files are included
 		allFiles.length.should.equal(6) // 2 in root + 2 in other + 2 in workflows
@@ -229,14 +229,14 @@ describe("Filesystem Utilities", () => {
 		allFiles.some((file) => file.includes("workflow2.js")).should.be.true()
 
 		// Get files WITH workflows directory excluded
-		const filteredFiles = await readDirectory(clinerulesDirPath, [[".clinerules", "workflows"]])
+		const filteredFiles = await readDirectory(skylinerulesDirPath, [[".skylinerules", "workflows"]])
 
 		// Verify workflows files are excluded but others remain
 		filteredFiles.length.should.equal(4) // 2 in root + 2 in other
 
 		const expectedFiles = [
-			path.resolve(clinerulesDirPath, "config.json"),
-			path.resolve(clinerulesDirPath, "settings.js"),
+			path.resolve(skylinerulesDirPath, "config.json"),
+			path.resolve(skylinerulesDirPath, "settings.js"),
 			path.resolve(otherDirPath, "helper.js"),
 			path.resolve(otherDirPath, "util.js"),
 		]
@@ -244,15 +244,15 @@ describe("Filesystem Utilities", () => {
 		filteredFiles.sort().should.deepEqual(expectedFiles.sort())
 
 		// Test with multiple exclusions
-		const multiExcludeFiles = await readDirectory(clinerulesDirPath, [
-			[".clinerules", "workflows"],
-			[".clinerules", "other"],
+		const multiExcludeFiles = await readDirectory(skylinerulesDirPath, [
+			[".skylinerules", "workflows"],
+			[".skylinerules", "other"],
 		])
 
 		// Verify both workflows and other directories are excluded
 		multiExcludeFiles.length.should.equal(2) // only the 2 files in root
 
-		const rootOnlyFiles = [path.resolve(clinerulesDirPath, "config.json"), path.resolve(clinerulesDirPath, "settings.js")]
+		const rootOnlyFiles = [path.resolve(skylinerulesDirPath, "config.json"), path.resolve(skylinerulesDirPath, "settings.js")]
 
 		multiExcludeFiles.sort().should.deepEqual(rootOnlyFiles.sort())
 	})

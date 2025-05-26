@@ -1,12 +1,12 @@
 import { Anthropic } from "@anthropic-ai/sdk"
-import { ClineApiReqInfo, ClineMessage } from "@shared/ExtensionMessage"
+import { skylineApiReqInfo, skylineMessage } from "@shared/ExtensionMessage"
 import { ApiHandler } from "@api/index"
 import { getContextWindowInfo } from "./context-window-utils"
 
 class ContextManager {
 	getNewContextMessagesAndMetadata(
 		apiConversationHistory: Anthropic.Messages.MessageParam[],
-		clineMessages: ClineMessage[],
+		skylineMessages: skylineMessage[],
 		api: ApiHandler,
 		conversationHistoryDeletedRange: [number, number] | undefined,
 		previousApiReqIndex: number,
@@ -15,9 +15,9 @@ class ContextManager {
 
 		// If the previous API request's total token usage is close to the context window, truncate the conversation history to free up space for the new request
 		if (previousApiReqIndex >= 0) {
-			const previousRequest = clineMessages[previousApiReqIndex]
+			const previousRequest = skylineMessages[previousApiReqIndex]
 			if (previousRequest && previousRequest.text) {
-				const { tokensIn, tokensOut, cacheWrites, cacheReads }: ClineApiReqInfo = JSON.parse(previousRequest.text)
+				const { tokensIn, tokensOut, cacheWrites, cacheReads }: skylineApiReqInfo = JSON.parse(previousRequest.text)
 				const totalTokens = (tokensIn || 0) + (tokensOut || 0) + (cacheWrites || 0) + (cacheReads || 0)
 				const { maxAllowedSize } = getContextWindowInfo(api)
 
@@ -77,7 +77,7 @@ class ContextManager {
 		let rangeEndIndex = startOfRest + messagesToRemove - 1
 
 		// Make sure the last message being removed is a user message, so that the next message after the initial task message is an assistant message. This preservers the user-assistant-user-assistant structure.
-		// NOTE: anthropic format messages are always user-assistant-user-assistant, while openai format messages can have multiple user messages in a row (we use anthropic format throughout cline)
+		// NOTE: anthropic format messages are always user-assistant-user-assistant, while openai format messages can have multiple user messages in a row (we use anthropic format throughout skyline)
 		if (apiMessages[rangeEndIndex].role !== "user") {
 			rangeEndIndex -= 1
 		}

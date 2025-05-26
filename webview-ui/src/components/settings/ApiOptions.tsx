@@ -60,7 +60,7 @@ import { ModelsServiceClient } from "@/services/grpc-client"
 import { getAsVar, VSC_DESCRIPTION_FOREGROUND } from "@/utils/vscStyles"
 import VSCodeButtonLink from "@/components/common/VSCodeButtonLink"
 import OpenRouterModelPicker, { ModelDescriptionMarkdown, OPENROUTER_MODEL_PICKER_Z_INDEX } from "./OpenRouterModelPicker"
-import { ClineAccountInfoCard } from "./ClineAccountInfoCard"
+import { SkylineAccountInfoCard } from "./skylineAccountInfoCard"
 import RequestyModelPicker from "./RequestyModelPicker"
 import { useOpenRouterKeyInfo } from "../ui/hooks/useOpenRouterKeyInfo"
 
@@ -305,7 +305,7 @@ const ApiOptions = ({
 						minWidth: 130,
 						position: "relative",
 					}}>
-					<VSCodeOption value="cline">Cline</VSCodeOption>
+					<VSCodeOption value="skyline">skyline</VSCodeOption>
 					<VSCodeOption value="openrouter">OpenRouter</VSCodeOption>
 					<VSCodeOption value="anthropic">Anthropic</VSCodeOption>
 					<VSCodeOption value="bedrock">Amazon Bedrock</VSCodeOption>
@@ -330,9 +330,9 @@ const ApiOptions = ({
 				</VSCodeDropdown>
 			</DropdownContainer>
 
-			{selectedProvider === "cline" && (
+			{selectedProvider === "skyline" && (
 				<div style={{ marginBottom: 14, marginTop: 4 }}>
-					<ClineAccountInfoCard />
+					<SkylineAccountInfoCard />
 				</div>
 			)}
 
@@ -1352,8 +1352,8 @@ const ApiOptions = ({
 							color: "var(--vscode-descriptionForeground)",
 						}}>
 						<span style={{ color: "var(--vscode-errorForeground)" }}>
-							(<span style={{ fontWeight: 500 }}>Note:</span> Cline uses complex prompts and works best with Claude
-							models. Less capable models may not work as expected.)
+							(<span style={{ fontWeight: 500 }}>Note:</span> skyline uses complex prompts and works best with
+							Claude models. Less capable models may not work as expected.)
 						</span>
 					</p>
 				</div>
@@ -1415,8 +1415,8 @@ const ApiOptions = ({
 							color: "var(--vscode-descriptionForeground)",
 						}}>
 						<span style={{ color: "var(--vscode-errorForeground)" }}>
-							(<span style={{ fontWeight: 500 }}>Note:</span> Cline uses complex prompts and works best with Claude
-							models. Less capable models may not work as expected.)
+							(<span style={{ fontWeight: 500 }}>Note:</span> skyline uses complex prompts and works best with
+							Claude models. Less capable models may not work as expected.)
 						</span>
 					</p>
 					<VSCodeTextField
@@ -1488,8 +1488,8 @@ const ApiOptions = ({
 							color: "var(--vscode-descriptionForeground)",
 						}}>
 						<span style={{ color: "var(--vscode-errorForeground)" }}>
-							(<span style={{ fontWeight: 500 }}>Note:</span> Cline uses complex prompts and works best with Claude
-							models. Less capable models may not work as expected.)
+							(<span style={{ fontWeight: 500 }}>Note:</span> skyline uses complex prompts and works best with
+							Claude models. Less capable models may not work as expected.)
 						</span>
 					</p>
 				</div>
@@ -1616,8 +1616,8 @@ const ApiOptions = ({
 						</VSCodeLink>{" "}
 						feature to use it with this extension.{" "}
 						<span style={{ color: "var(--vscode-errorForeground)" }}>
-							(<span style={{ fontWeight: 500 }}>Note:</span> Cline uses complex prompts and works best with Claude
-							models. Less capable models may not work as expected.)
+							(<span style={{ fontWeight: 500 }}>Note:</span> skyline uses complex prompts and works best with
+							Claude models. Less capable models may not work as expected.)
 						</span>
 					</p>
 				</div>
@@ -1877,8 +1877,8 @@ const ApiOptions = ({
 							quickstart guide.
 						</VSCodeLink>
 						<span style={{ color: "var(--vscode-errorForeground)" }}>
-							(<span style={{ fontWeight: 500 }}>Note:</span> Cline uses complex prompts and works best with Claude
-							models. Less capable models may not work as expected.)
+							(<span style={{ fontWeight: 500 }}>Note:</span> skyline uses complex prompts and works best with
+							Claude models. Less capable models may not work as expected.)
 						</span>
 					</p>
 				</div>
@@ -1907,7 +1907,7 @@ const ApiOptions = ({
 							</VSCodeLink>
 						)}
 					</p>
-					{/* Note: To fully implement this, you would need to add a handler in ClineProvider.ts */}
+					{/* Note: To fully implement this, you would need to add a handler in skylineProvider.ts */}
 					{/* {apiConfiguration?.xaiApiKey && (
 						<button
 							onClick={() => {
@@ -1991,7 +1991,7 @@ const ApiOptions = ({
 				</>
 			)}
 
-			{(selectedProvider === "openrouter" || selectedProvider === "cline") && showModelOptions && (
+			{(selectedProvider === "openrouter" || selectedProvider === "skyline") && showModelOptions && (
 				<>
 					<VSCodeCheckbox
 						style={{ marginTop: -10 }}
@@ -2043,7 +2043,7 @@ const ApiOptions = ({
 			)}
 
 			{selectedProvider !== "openrouter" &&
-				selectedProvider !== "cline" &&
+				selectedProvider !== "skyline" &&
 				selectedProvider !== "openai" &&
 				selectedProvider !== "ollama" &&
 				selectedProvider !== "lmstudio" &&
@@ -2141,7 +2141,7 @@ const ApiOptions = ({
 					</>
 				)}
 
-			{(selectedProvider === "openrouter" || selectedProvider === "cline") && showModelOptions && (
+			{(selectedProvider === "openrouter" || selectedProvider === "skyline") && showModelOptions && (
 				<OpenRouterModelPicker isPopup={isPopup} />
 			)}
 			{selectedProvider === "requesty" && showModelOptions && <RequestyModelPicker isPopup={isPopup} />}
@@ -2290,7 +2290,7 @@ export const ModelInfoView = ({
 		/>,
 		<ModelInfoSupportsItem
 			key="supportsBrowserUse"
-			isSupported={modelInfo.supportsImages ?? false} // cline browser tool uses image recognition for navigation (requires model image support).
+			isSupported={modelInfo.supportsImages ?? false} // skyline browser tool uses image recognition for navigation (requires model image support).
 			supportsLabel="Supports browser use"
 			doesNotSupportLabel="Does not support browser use"
 		/>,
@@ -2445,7 +2445,7 @@ export function normalizeApiConfiguration(apiConfiguration?: ApiConfiguration): 
 				selectedModelId: apiConfiguration?.requestyModelId || requestyDefaultModelId,
 				selectedModelInfo: apiConfiguration?.requestyModelInfo || requestyDefaultModelInfo,
 			}
-		case "cline":
+		case "skyline":
 			return {
 				selectedProvider: provider,
 				selectedModelId: apiConfiguration?.openRouterModelId || openRouterDefaultModelId,

@@ -18,10 +18,10 @@ export function createEvalsEnvFile(directory: string): boolean {
 
 	// Create the file
 	try {
-		const content = `# This file activates Cline test mode
+		const content = `# This file activates skyline test mode
 # Created at: ${new Date().toISOString()}
 # 
-# This file is automatically detected by the Cline extension
+# This file is automatically detected by the skyline extension
 # and enables test mode for automated evaluations.
 #
 # Delete this file to deactivate test mode.

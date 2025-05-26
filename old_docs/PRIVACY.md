@@ -1,1 +1,1 @@
-See [https://cline.bot/privacy](https://cline.bot/privacy) for our privacy policy.
+See [https://skyline.bot/privacy](https://skyline.bot/privacy) for our privacy policy.
