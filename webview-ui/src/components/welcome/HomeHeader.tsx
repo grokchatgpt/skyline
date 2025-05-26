@@ -9,12 +9,7 @@ const HomeHeader = () => {
 			</div>
 			<div className="text-center flex items-center justify-center">
 				<h2 className="m-0 text-[var(--vscode-font-size)]">{"*"}</h2>
-				<HeroTooltip
-					placement="bottom"
-					className="max-w-[300px]"
-					content={
-						"why look at this?"
-					}>
+				<HeroTooltip placement="bottom" className="max-w-[300px]" content={"why look at this?"}>
 					<span
 						className="codicon codicon-info ml-2 cursor-pointer"
 						style={{ fontSize: "14px", color: "var(--vscode-textLink-foreground)" }}

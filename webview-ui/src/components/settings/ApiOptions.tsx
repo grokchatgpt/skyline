@@ -1201,19 +1201,19 @@ const ApiOptions = ({
 								Supports Images
 							</VSCodeCheckbox>
 							<VSCodeCheckbox
-								checked={!!apiConfiguration?.openAiModelInfo?.supportsImages}
+								checked={!!apiConfiguration?.openAiModelInfo?.supportsPromptCache}
 								onChange={(e: any) => {
 									const isChecked = e.target.checked === true
-									let modelInfo = apiConfiguration?.openAiModelInfo
+									const modelInfo = apiConfiguration?.openAiModelInfo
 										? apiConfiguration.openAiModelInfo
 										: { ...openAiModelInfoSaneDefaults }
-									modelInfo.supportsImages = isChecked
+									modelInfo.supportsPromptCache = isChecked
 									setApiConfiguration({
 										...apiConfiguration,
 										openAiModelInfo: modelInfo,
 									})
 								}}>
-								Supports browser use
+								Supports prompt caching
 							</VSCodeCheckbox>
 							<VSCodeCheckbox
 								checked={!!apiConfiguration?.openAiModelInfo?.isR1FormatRequired}

@@ -94,10 +94,16 @@ export class OpenAiHandler implements ApiHandler {
 			}
 
 			if (chunk.usage) {
+				// Use any cast to access cache fields that aren't in OpenAI SDK types
+				const cacheWriteTokens = (chunk.usage as any)['cache_creation_input_tokens'] || 0
+				const cacheReadTokens = (chunk.usage as any)['cache_read_input_tokens'] || 0
+
 				yield {
 					type: "usage",
 					inputTokens: chunk.usage.prompt_tokens || 0,
 					outputTokens: chunk.usage.completion_tokens || 0,
+					cacheReadTokens: cacheReadTokens > 0 ? cacheReadTokens : undefined,
+					cacheWriteTokens: cacheWriteTokens > 0 ? cacheWriteTokens : undefined,
 				}
 			}
 		}
