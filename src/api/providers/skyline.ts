@@ -15,10 +15,10 @@ export class skylineHandler implements ApiHandler {
 	constructor(options: ApiHandlerOptions) {
 		this.options = options
 		this.client = new OpenAI({
-			baseURL: "https://api.skyline.bot/v1",
+			baseURL: "https://api.cline.bot/v1",
 			apiKey: this.options.skylineApiKey || "",
 			defaultHeaders: {
-				"HTTP-Referer": "https://skyline.bot", // Optional, for including your app on skyline.bot rankings.
+				"HTTP-Referer": "https://cline.bot", // Optional, for including your app on skyline.bot rankings.
 				"X-Title": "skyline", // Optional. Shows in rankings on skyline.bot.
 				"X-Task-ID": this.options.taskId || "", // Include the task ID in the request headers
 			},
@@ -97,7 +97,7 @@ export class skylineHandler implements ApiHandler {
 	async getApiStreamUsage(): Promise<ApiStreamUsageChunk | undefined> {
 		if (this.lastGenerationId) {
 			try {
-				const response = await axios.get(`https://api.skyline.bot/v1/generation?id=${this.lastGenerationId}`, {
+				const response = await axios.get(`https://api.cline.bot/v1/generation?id=${this.lastGenerationId}`, {
 					headers: {
 						Authorization: `Bearer ${this.options.skylineApiKey}`,
 					},

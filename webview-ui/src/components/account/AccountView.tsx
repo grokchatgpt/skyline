@@ -111,7 +111,7 @@ export const SkylineAccountView = () => {
 
 					<div className="w-full flex gap-2 flex-col min-[225px]:flex-row">
 						<div className="w-full min-[225px]:w-1/2">
-							<VSCodeButtonLink href="https://app.skyline.bot/credits" appearance="primary" className="w-full">
+							<VSCodeButtonLink href="https://app.cline.bot/credits" appearance="primary" className="w-full">
 								Dashboard
 							</VSCodeButtonLink>
 						</div>
@@ -143,7 +143,7 @@ export const SkylineAccountView = () => {
 						</div>
 
 						<div className="w-full">
-							<VSCodeButtonLink href="https://app.skyline.bot/credits/#buy" className="w-full">
+							<VSCodeButtonLink href="https://app.cline.bot/credits/#buy" className="w-full">
 								Add Credits
 							</VSCodeButtonLink>
 						</div>
@@ -169,8 +169,8 @@ export const SkylineAccountView = () => {
 					</VSCodeButton>
 
 					<p className="text-[var(--vscode-descriptionForeground)] text-xs text-center m-0">
-						By continuing, you agree to the <VSCodeLink href="https://skyline.bot/tos">Terms of Service</VSCodeLink>{" "}
-						and <VSCodeLink href="https://skyline.bot/privacy">Privacy Policy.</VSCodeLink>
+						By continuing, you agree to the <VSCodeLink href="https://cline.bot/tos">Terms of Service</VSCodeLink> and{" "}
+						<VSCodeLink href="https://cline.bot/privacy">Privacy Policy.</VSCodeLink>
 					</p>
 				</div>
 			)}
