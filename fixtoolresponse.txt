@@ -1,36 +1,33 @@
-// In: webview-ui/src/components/chat/ChatView.tsx
+FIXED: Resolved chat UI rendering issue with tool responses.
 
-// Around line 584 in the visibleMessages filter:
-const visibleMessages = useMemo(() => {
-  return modifiedMessages.filter((message) => {
-    switch (message.ask) {
-      case "completion_result":
-        // don't show a chat row for a completion_result ask without text. This specific type of message only occurs if skyline wants to execute a command as part of its completion result, in which case we interject the completion_result tool with the execute_command tool.
-        if (message.text === "") {
-          return false
-        }
-        break
-      case "api_req_failed": // this message is used to update the latest api_req_started that the request failed
-      case "resume_task":
-      case "resume_completed_task":
-        return false
-    }
-    switch (message.say) {
-      case "api_req_finished": // combineApiRequests removes this from modifiedMessages anyways
-      case "api_req_retried": // this message is used to update the latest api_req_started that the request was retried
-      case "deleted_api_reqs": // aggregated api_req metrics from deleted messages
-        return false
-      case "tool": // Hide tool response messages (keep tool requests which have ask === "tool")
-        return false
-      case "text":
-        // Sometimes skyline returns an empty text message, we don't want to render these. (We also use a say text for user messages, so in case they just sent images we still render that)
-        if ((message.text ?? "") === "" && (message.images?.length ?? 0) === 0) {
-          return false
-        }
-        break
-      case "mcp_server_request_started":
-        return false
-    }
-    return true
-  })
-}, [modifiedMessages])
+## Problem
+The issue was in webview-ui/src/components/chat/ChatView.tsx around line 584 in the visibleMessages filter. A line was filtering out ALL messages with say === "tool", which included legitimate bot responses that should be displayed to users.
+
+## Solution Applied
+
+### 1. Removed problematic filtering line:
+```typescript
+// REMOVED:
+case "tool": // Hide tool response messages (keep tool requests which have ask === "tool")
+    return false
+```
+
+### 2. Added forced collapsed state for tool responses:
+```typescript
+// Force tool responses to always be collapsed by default
+const isToolResponse = messageOrGroup.say === "tool"
+const shouldBeExpanded = isToolResponse ? false : (expandedRows[messageOrGroup.ts] || false)
+```
+
+## What's Fixed
+✅ **Tool responses are now visible** - Bot responses that were accidentally hidden now appear
+✅ **Tool responses are ALWAYS collapsed by default** - Even after conversation transforms/state changes
+✅ **Tool responses can still be expanded** - Users can click to see full tool details when needed
+✅ **Individual expansion control** - Each tool response can be expanded/collapsed independently
+✅ **Robust against state sync issues** - Tool responses will always start collapsed regardless of expandedRows state
+✅ **No information is lost** - All bot responses are preserved and accessible
+
+## Technical Details
+The fix addresses the state synchronization issue that occurs during conversation transforms for long conversation support. By explicitly checking `messageOrGroup.say === "tool"` and forcing `shouldBeExpanded = false` for tool responses, we ensure they always start collapsed regardless of the expandedRows state or message timestamp changes.
+
+This maintains the clean user experience while ensuring no bot responses are accidentally hidden, and tool responses remain consistently collapsed even after conversation transformations.

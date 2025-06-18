@@ -734,8 +734,6 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 				case "api_req_retried": // this message is used to update the latest api_req_started that the request was retried
 				case "deleted_api_reqs": // aggregated api_req metrics from deleted messages
 					return false
-				case "tool": // Hide tool response messages (keep tool requests which have ask === "tool")
-					return false
 				case "text":
 					// Sometimes skyline returns an empty text message, we don't want to render these. (We also use a say text for user messages, so in case they just sent images we still render that)
 					if ((message.text ?? "") === "" && (message.images?.length ?? 0) === 0) {
@@ -987,11 +985,15 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 			const isLast = index === groupedMessages.length - 1 || isLastMessageGroup
 
 			// regular message
+			// Force tool responses to always be collapsed by default
+			const isToolResponse = messageOrGroup.say === "tool"
+			const shouldBeExpanded = isToolResponse ? false : (expandedRows[messageOrGroup.ts] || false)
+			
 			return (
 				<ChatRow
 					key={messageOrGroup.ts}
 					message={messageOrGroup}
-					isExpanded={expandedRows[messageOrGroup.ts] || false}
+					isExpanded={shouldBeExpanded}
 					onToggleExpand={() => toggleRowExpansion(messageOrGroup.ts)}
 					lastModifiedMessage={modifiedMessages.at(-1)}
 					isLast={isLast}
