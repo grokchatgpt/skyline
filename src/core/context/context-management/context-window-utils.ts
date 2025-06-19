@@ -6,7 +6,7 @@ import { OpenAiHandler } from "@api/providers/openai"
  */
 export const TOOL_RESULT_LIMITS = {
 	MAX_TOOL_RESULT_SIZE: 256 * 1024, // 256KB in bytes
-	TRUNCATION_SUFFIX: "\n\n===TOOL RESULT OVER THE LIMIT AND CONTENT IS TRUNCATED==="
+	TRUNCATION_SUFFIX: "\n\n===TOOL RESULT OVER THE LIMIT AND CONTENT IS TRUNCATED===",
 }
 
 /**

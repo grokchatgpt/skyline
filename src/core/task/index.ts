@@ -273,10 +273,12 @@ export class Task {
 
 	// Storing task to disk for history
 	private async addToApiConversationHistory(message: Anthropic.MessageParam) {
-		console.log(`[CONV-DEBUG] Adding ${message.role} message to API conversation history. Total messages: ${this.apiConversationHistory.length + 1}`)
+		console.log(
+			`[CONV-DEBUG] Adding ${message.role} message to API conversation history. Total messages: ${this.apiConversationHistory.length + 1}`,
+		)
 		if (message.role === "assistant") {
 			const content = Array.isArray(message.content) ? message.content : [{ type: "text", text: message.content }]
-			const textBlock = content.find(c => c.type === "text") as Anthropic.TextBlockParam | undefined
+			const textBlock = content.find((c) => c.type === "text") as Anthropic.TextBlockParam | undefined
 			const textContent = textBlock?.text || ""
 			console.log(`[CONV-DEBUG] Assistant message preview: "${textContent.substring(0, 100)}..."`)
 		}
@@ -287,6 +289,16 @@ export class Task {
 	private async overwriteApiConversationHistory(newHistory: Anthropic.MessageParam[]) {
 		this.apiConversationHistory = newHistory
 		await saveApiConversationHistory(this.getContext(), this.taskId, this.apiConversationHistory)
+	}
+
+	private getLatest3Messages(): Anthropic.MessageParam[] {
+		if (this.apiConversationHistory.length <= 2) {
+			// First turn: just [user] or [user, assistant]
+			return this.apiConversationHistory.slice()
+		}
+		
+		// Subsequent turns: get last 3 messages [prev_user, prev_assistant, current_user]
+		return this.apiConversationHistory.slice(-3)
 	}
 
 	private async addToskylineMessages(message: skylineMessage) {
@@ -1603,7 +1615,12 @@ export class Task {
 			await this.saveskylineMessagesAndUpdateHistory() // saves task history item which we use to keep track of conversation history deleted range
 		}
 
-		let stream = this.api.createMessage(systemPrompt, contextManagementMetadata.truncatedConversationHistory)
+		// PERFORMANCE FIX: Use minimal messages for external provider while keeping full tracking intact
+		const messagesToSend = this.apiConversationHistory.length > 10 ? 
+			this.getLatest3Messages() : 
+			contextManagementMetadata.truncatedConversationHistory
+
+		let stream = this.api.createMessage(systemPrompt, messagesToSend)
 
 		const iterator = stream[Symbol.asyncIterator]()
 
@@ -1842,8 +1859,9 @@ export class Task {
 						// Apply truncation to string content if it exceeds the limit
 						let processedContent = content || "(tool did not return anything)"
 						if (processedContent.length > TOOL_RESULT_LIMITS.MAX_TOOL_RESULT_SIZE) {
-							processedContent = processedContent.substring(0, TOOL_RESULT_LIMITS.MAX_TOOL_RESULT_SIZE) + 
-											TOOL_RESULT_LIMITS.TRUNCATION_SUFFIX
+							processedContent =
+								processedContent.substring(0, TOOL_RESULT_LIMITS.MAX_TOOL_RESULT_SIZE) +
+								TOOL_RESULT_LIMITS.TRUNCATION_SUFFIX
 						}
 						this.userMessageContent.push({
 							type: "text",
@@ -4018,11 +4036,13 @@ export class Task {
 			// now add to apiconversationhistory
 			// need to save assistant responses to file before proceeding to tool use since user can exit at any moment and we wouldn't be able to save the assistant's response
 			let didEndLoop = false
-			
+
 			// Always add assistant message to conversation history, even if it's empty text but has tool calls
 			const didToolUse = this.assistantMessageContent.some((block) => block.type === "tool_use")
-			console.log(`[CONV-DEBUG] Assistant message check: assistantMessage.length=${assistantMessage.length}, didToolUse=${didToolUse}, assistantMessageContent.length=${this.assistantMessageContent.length}`)
-			
+			console.log(
+				`[CONV-DEBUG] Assistant message check: assistantMessage.length=${assistantMessage.length}, didToolUse=${didToolUse}, assistantMessageContent.length=${this.assistantMessageContent.length}`,
+			)
+
 			telemetryService.captureConversationTurnEvent(
 				this.taskId,
 				currentProviderId,

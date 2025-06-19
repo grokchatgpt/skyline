@@ -127,8 +127,11 @@ export class ContextManager {
 				const totalTokens = (tokensIn || 0) + (tokensOut || 0) + (cacheWrites || 0) + (cacheReads || 0)
 				const { maxAllowedSize } = getContextWindowInfo(api)
 
+				// Aggressive truncation threshold: trigger at 1/4 of context window to keep context minimal
+				const aggressiveTruncationThreshold = maxAllowedSize * 0.25
+
 				// This is the most reliable way to know when we're close to hitting the context window.
-				if (totalTokens >= maxAllowedSize) {
+				if (totalTokens >= aggressiveTruncationThreshold) {
 					// Since the user may switch between models with different context windows, truncating half may not be enough (ie if switching from claude 200k to deepseek 64k, half truncation will only remove 100k tokens, but we need to remove much more)
 					// So if totalTokens/2 is greater than maxAllowedSize, we truncate 3/4 instead of 1/2
 					const keep = totalTokens / 2 > maxAllowedSize ? "quarter" : "half"
@@ -243,54 +246,24 @@ export class ContextManager {
 	}
 
 	/**
-	 * SKYLINE MODIFICATION: Implements optimized 3-message conversation system when appropriate,
-	 * while maintaining backward compatibility with traditional truncation.
+	 * Return truncated messages based on deletedRange, or all messages if no truncation needed
 	 */
 	private getAndAlterTruncatedMessages(
 		messages: Anthropic.Messages.MessageParam[],
 		deletedRange: [number, number] | undefined,
 	): Anthropic.Messages.MessageParam[] {
-		// Handle edge cases with very few messages
-		if (messages.length <= 1) {
-			return messages
+		if (!deletedRange) {
+			// No truncation needed - return all messages with context history updates applied
+			return this.applyContextHistoryUpdates(messages, 2)
 		}
 
-		// If deletedRange is provided, use the traditional truncation logic
-		// This maintains backward compatibility with tests and existing functionality
-		if (deletedRange) {
-			const [startIndex, endIndex] = deletedRange
-			
-			// Create result by removing the specified range
-			const result = [
-				...messages.slice(0, startIndex + 1),  // Keep up to and including startIndex
-				...messages.slice(endIndex + 1)        // Keep from endIndex + 1 onwards
-			]
-			
-			// Apply context history updates to the truncated messages
-			return this.applyContextHistoryUpdates(result, startIndex + 1)
-		}
+		// Apply standard truncation logic when deletedRange is specified
+		const firstChunk = messages.slice(0, 2) // get first user-assistant pair
+		const secondChunk = messages.slice(deletedRange[1] + 1) // get remaining messages within context
+		const result = [...firstChunk, ...secondChunk]
 
-		// When no deletedRange is specified, check if we should use the 3-message system
-		// Only return unchanged if we have fewer than 3 messages
-		if (messages.length < 3) {
-			return messages
-		}
-
-		// For the optimized 3-message system: keep only the 3 most recent messages
-		// This dramatically reduces context window usage while maintaining conversation flow
-		const result = messages.slice(-3).map(msg => cloneDeep(msg))
-
-		// Apply context history updates to the 3-message system
-		const originalMessages = messages
-		const latestUserIndex = originalMessages.length - 1
-		const updatedResult = this.applyContextHistoryUpdatesTo3MessageSystem(result, originalMessages, latestUserIndex)
-
-		console.log(
-			"SKYLINE: Using optimized 3-message system:",
-			`${updatedResult.length} messages, roles: ${updatedResult.map((m) => m.role).join(", ")}`,
-		)
-
-		return updatedResult
+		// Apply context history updates to the truncated messages
+		return this.applyContextHistoryUpdates(messages, deletedRange[1] + 1)
 	}
 
 	/**
