@@ -987,8 +987,8 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 			// regular message
 			// Force tool responses to always be collapsed by default
 			const isToolResponse = messageOrGroup.say === "tool"
-			const shouldBeExpanded = isToolResponse ? false : (expandedRows[messageOrGroup.ts] || false)
-			
+			const shouldBeExpanded = isToolResponse ? false : expandedRows[messageOrGroup.ts] || false
+
 			return (
 				<ChatRow
 					key={messageOrGroup.ts}

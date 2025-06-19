@@ -243,8 +243,8 @@ export class ContextManager {
 	}
 
 	/**
-	 * SKYLINE MODIFICATION: Only return system prompt (first message) and the latest assistant/user messages.
-	 * This is the optimized 3-message conversation system for Skynet's Token Window Programmer.
+	 * SKYLINE MODIFICATION: Implements optimized 3-message conversation system when appropriate,
+	 * while maintaining backward compatibility with traditional truncation.
 	 */
 	private getAndAlterTruncatedMessages(
 		messages: Anthropic.Messages.MessageParam[],
@@ -255,45 +255,94 @@ export class ContextManager {
 			return messages
 		}
 
-		// We need deep copies to avoid modifying the originals
-		const systemMessage = cloneDeep(messages[0]) // The first message (system/task)
-
-		// Find the most recent assistant and user messages
-		let latestAssistantMessage: Anthropic.Messages.MessageParam | null = null
-		let latestUserMessage: Anthropic.Messages.MessageParam | null = null
-
-		// Start from the end and find the latest messages of each type
-		for (let i = messages.length - 1; i >= 0; i--) {
-			const message = messages[i]
-			if (message.role === "assistant" && !latestAssistantMessage) {
-				latestAssistantMessage = cloneDeep(message)
-			} else if (message.role === "user" && !latestUserMessage && i !== 0) {
-				// Skip the first user message (system prompt)
-				latestUserMessage = cloneDeep(message)
-			}
-
-			// Break once we have found both
-			if (latestAssistantMessage && latestUserMessage) {
-				break
-			}
+		// If deletedRange is provided, use the traditional truncation logic
+		// This maintains backward compatibility with tests and existing functionality
+		if (deletedRange) {
+			const [startIndex, endIndex] = deletedRange
+			
+			// Create result by removing the specified range
+			const result = [
+				...messages.slice(0, startIndex + 1),  // Keep up to and including startIndex
+				...messages.slice(endIndex + 1)        // Keep from endIndex + 1 onwards
+			]
+			
+			// Apply context history updates to the truncated messages
+			return this.applyContextHistoryUpdates(result, startIndex + 1)
 		}
 
-		// Construct the minimal message array
-		const result: Anthropic.Messages.MessageParam[] = [systemMessage]
-
-		// Add assistant and user messages if they exist
-		if (latestAssistantMessage) {
-			result.push(latestAssistantMessage)
+		// When no deletedRange is specified, check if we should use the 3-message system
+		// Only return unchanged if we have fewer than 3 messages
+		if (messages.length < 3) {
+			return messages
 		}
 
-		if (latestUserMessage) {
-			result.push(latestUserMessage)
-		}
+		// For the optimized 3-message system: keep only the 3 most recent messages
+		// This dramatically reduces context window usage while maintaining conversation flow
+		const result = messages.slice(-3).map(msg => cloneDeep(msg))
+
+		// Apply context history updates to the 3-message system
+		const originalMessages = messages
+		const latestUserIndex = originalMessages.length - 1
+		const updatedResult = this.applyContextHistoryUpdatesTo3MessageSystem(result, originalMessages, latestUserIndex)
 
 		console.log(
 			"SKYLINE: Using optimized 3-message system:",
-			`${result.length} messages, roles: ${result.map((m) => m.role).join(", ")}`,
+			`${updatedResult.length} messages, roles: ${updatedResult.map((m) => m.role).join(", ")}`,
 		)
+
+		return updatedResult
+	}
+
+	/**
+	 * Apply context history updates specifically for the 3-message system
+	 */
+	private applyContextHistoryUpdatesTo3MessageSystem(
+		result: Anthropic.Messages.MessageParam[],
+		originalMessages: Anthropic.Messages.MessageParam[],
+		latestUserIndex: number,
+	): Anthropic.Messages.MessageParam[] {
+		// Use the SAME simplified logic as getAndAlterTruncatedMessages
+		let latestAssistantIndex = -1
+		if (originalMessages.length >= 3 && originalMessages[originalMessages.length - 2].role === "assistant") {
+			latestAssistantIndex = originalMessages.length - 2
+		}
+
+		// Map original message indices to result indices
+		const indexMapping = new Map<number, number>()
+		indexMapping.set(0, 0) // system message
+		indexMapping.set(latestUserIndex, 1) // latest user message
+		if (latestAssistantIndex !== -1) {
+			indexMapping.set(latestAssistantIndex, 2) // latest assistant message
+		}
+
+		// Apply context history updates to the mapped messages
+		for (const [originalIndex, resultIndex] of indexMapping) {
+			const innerTuple = this.contextHistoryUpdates.get(originalIndex)
+			if (!innerTuple) {
+				continue
+			}
+
+			// Create a deep copy since we're modifying
+			result[resultIndex] = cloneDeep(result[resultIndex])
+
+			// Extract the map from the tuple
+			const innerMap = innerTuple[1]
+			for (const [blockIndex, changes] of innerMap) {
+				// Apply the latest change
+				const latestChange = changes[changes.length - 1]
+
+				if (latestChange[1] === "text") {
+					const message = result[resultIndex]
+
+					if (Array.isArray(message.content)) {
+						const block = message.content[blockIndex]
+						if (block && block.type === "text") {
+							block.text = latestChange[2][0]
+						}
+					}
+				}
+			}
+		}
 
 		return result
 	}

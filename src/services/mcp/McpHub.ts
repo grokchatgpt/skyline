@@ -41,7 +41,7 @@ export type McpConnection = {
 	transport: StdioClientTransport | SSEClientTransport
 }
 
-export type McpTransportType = "stdio" | "sse"
+export type McpTransportType = "stdio" | "sse" | "internal"
 
 export type McpServerConfig = z.infer<typeof ServerConfigSchema>
 
@@ -69,7 +69,15 @@ const StdioConfigSchema = BaseConfigSchema.extend({
 	transportType: "stdio" as const,
 }))
 
-const ServerConfigSchema = z.union([StdioConfigSchema, SseConfigSchema])
+const InternalConfigSchema = BaseConfigSchema.extend({
+	internal: z.literal(true),
+	handler: z.string(),
+}).transform((config) => ({
+	...config,
+	transportType: "internal" as const,
+}))
+
+const ServerConfigSchema = z.union([StdioConfigSchema, SseConfigSchema, InternalConfigSchema])
 
 const McpSettingsSchema = z.object({
 	mcpServers: z.record(ServerConfigSchema),
@@ -182,7 +190,7 @@ export class McpHub {
 
 	private async connectToServer(
 		name: string,
-		config: z.infer<typeof StdioConfigSchema> | z.infer<typeof SseConfigSchema>,
+		config: z.infer<typeof StdioConfigSchema> | z.infer<typeof SseConfigSchema> | z.infer<typeof InternalConfigSchema>,
 	): Promise<void> {
 		// Remove existing connection if it exists (should never happen, the connection should be deleted beforehand)
 		this.connections = this.connections.filter((conn) => conn.server.name !== name)
@@ -203,6 +211,17 @@ export class McpHub {
 
 			if (config.transportType === "sse") {
 				transport = new SSEClientTransport(new URL(config.url), {})
+			} else if (config.transportType === "internal") {
+				// For internal servers, convert to stdio transport using node to run the handler
+				const handlerPath = path.resolve(config.handler)
+				transport = new StdioClientTransport({
+					command: "node",
+					args: [handlerPath],
+					env: {
+						...(process.env.PATH ? { PATH: process.env.PATH } : {}),
+					},
+					stderr: "pipe",
+				})
 			} else {
 				transport = new StdioClientTransport({
 					command: config.command,
@@ -246,7 +265,7 @@ export class McpHub {
 			}
 			this.connections.push(connection)
 
-			if (config.transportType === "stdio") {
+			if (config.transportType === "stdio" || config.transportType === "internal") {
 				// transport.stderr is only available after the process has been started. However we can't start it separately from the .connect() call because it also starts the transport. And we can't place this after the connect call since we need to capture the stderr stream before the connection is established, in order to capture errors during the connection process.
 				// As a workaround, we start the transport ourselves, and then monkey-patch the start method to no-op so that .connect() doesn't try to start it again.
 				await transport.start()

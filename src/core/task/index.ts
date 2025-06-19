@@ -66,7 +66,7 @@ import { skylineIgnoreController } from "@core/ignore/skylineIgnoreController"
 import { parseMentions } from "@core/mentions"
 import { formatResponse } from "@core/prompts/responses"
 import { addUserInstructions, SYSTEM_PROMPT } from "@core/prompts/system"
-import { getContextWindowInfo } from "@core/context/context-management/context-window-utils"
+import { getContextWindowInfo, TOOL_RESULT_LIMITS } from "@core/context/context-management/context-window-utils"
 import { FileContextTracker } from "@core/context/context-tracking/FileContextTracker"
 import { ModelContextTracker } from "@core/context/context-tracking/ModelContextTracker"
 import {
@@ -273,6 +273,13 @@ export class Task {
 
 	// Storing task to disk for history
 	private async addToApiConversationHistory(message: Anthropic.MessageParam) {
+		console.log(`[CONV-DEBUG] Adding ${message.role} message to API conversation history. Total messages: ${this.apiConversationHistory.length + 1}`)
+		if (message.role === "assistant") {
+			const content = Array.isArray(message.content) ? message.content : [{ type: "text", text: message.content }]
+			const textBlock = content.find(c => c.type === "text") as Anthropic.TextBlockParam | undefined
+			const textContent = textBlock?.text || ""
+			console.log(`[CONV-DEBUG] Assistant message preview: "${textContent.substring(0, 100)}..."`)
+		}
 		this.apiConversationHistory.push(message)
 		await saveApiConversationHistory(this.getContext(), this.taskId, this.apiConversationHistory)
 	}
@@ -1647,17 +1654,10 @@ export class Task {
 				// note that this api_req_failed ask is unique in that we only present this option if the api hasn't streamed any content yet (ie it fails on the first chunk due), as it would allow them to hit a retry button. However if the api failed mid-stream, it could be in any arbitrary state where some tools may have executed, so that error is handled differently and requires cancelling the task entirely.
 
 				if (isOpenRouterContextWindowError || isAnthropicContextWindowError) {
-					const truncatedConversationHistory = this.contextManager.getTruncatedMessages(
-						this.apiConversationHistory,
-						this.conversationHistoryDeletedRange,
-					)
-
-					// If the conversation has more than 3 messages, we can truncate again. If not, then the conversation is bricked.
-					// ToDo: Allow the user to change their input if this is the case.
-					if (truncatedConversationHistory.length > 3) {
-						error = new Error("Context window exceeded. Click retry to truncate the conversation and try again.")
-						this.didAutomaticallyRetryFailedApiRequest = false
-					}
+					// For our 3-message system, we always have room to truncate since we only keep 3 messages max
+					// The 3-message system in ContextManager will handle this automatically
+					error = new Error("Context window exceeded. Click retry to truncate the conversation and try again.")
+					this.didAutomaticallyRetryFailedApiRequest = false
 				}
 
 				const errorMessage = this.formatErrorWithStatusCode(error)
@@ -1839,9 +1839,15 @@ export class Task {
 						text: `${toolDescription()} Result:`,
 					})
 					if (typeof content === "string") {
+						// Apply truncation to string content if it exceeds the limit
+						let processedContent = content || "(tool did not return anything)"
+						if (processedContent.length > TOOL_RESULT_LIMITS.MAX_TOOL_RESULT_SIZE) {
+							processedContent = processedContent.substring(0, TOOL_RESULT_LIMITS.MAX_TOOL_RESULT_SIZE) + 
+											TOOL_RESULT_LIMITS.TRUNCATION_SUFFIX
+						}
 						this.userMessageContent.push({
 							type: "text",
-							text: content || "(tool did not return anything)",
+							text: processedContent,
 						})
 					} else {
 						this.userMessageContent.push(...content)
@@ -4012,60 +4018,50 @@ export class Task {
 			// now add to apiconversationhistory
 			// need to save assistant responses to file before proceeding to tool use since user can exit at any moment and we wouldn't be able to save the assistant's response
 			let didEndLoop = false
+			
+			// Always add assistant message to conversation history, even if it's empty text but has tool calls
+			const didToolUse = this.assistantMessageContent.some((block) => block.type === "tool_use")
+			console.log(`[CONV-DEBUG] Assistant message check: assistantMessage.length=${assistantMessage.length}, didToolUse=${didToolUse}, assistantMessageContent.length=${this.assistantMessageContent.length}`)
+			
+			telemetryService.captureConversationTurnEvent(
+				this.taskId,
+				currentProviderId,
+				this.api.getModel().id,
+				"assistant",
+				true,
+			)
+
+			// FIXED: ALWAYS add assistant message to conversation history, no conditions
+			// Create appropriate message content based on what we received
+			let messageContent: string
 			if (assistantMessage.length > 0) {
-				telemetryService.captureConversationTurnEvent(
-					this.taskId,
-					currentProviderId,
-					this.api.getModel().id,
-					"assistant",
-					true,
-				)
-
-				await this.addToApiConversationHistory({
-					role: "assistant",
-					content: [{ type: "text", text: assistantMessage }],
-				})
-
-				// NOTE: this comment is here for future reference - this was a workaround for userMessageContent not getting set to true. It was due to it not recursively calling for partial blocks when didRejectTool, so it would get stuck waiting for a partial block to complete before it could continue.
-				// in case the content blocks finished
-				// it may be the api stream finished after the last parsed content block was executed, so  we are able to detect out of bounds and set userMessageContentReady to true (note you should not call presentAssistantMessage since if the last block is completed it will be presented again)
-				// const completeBlocks = this.assistantMessageContent.filter((block) => !block.partial) // if there are any partial blocks after the stream ended we can consider them invalid
-				// if (this.currentStreamingContentIndex >= completeBlocks.length) {
-				// 	this.userMessageContentReady = true
-				// }
-
-				await pWaitFor(() => this.userMessageContentReady)
-
-				// if the model did not tool use, then we need to tell it to either use a tool or attempt_completion
-				const didToolUse = this.assistantMessageContent.some((block) => block.type === "tool_use")
-
-				if (!didToolUse) {
-					// normal request where tool use is required
-					this.userMessageContent.push({
-						type: "text",
-						text: formatResponse.noToolsUsed(),
-					})
-					this.consecutiveMistakeCount++
-				}
-
-				const recDidEndLoop = await this.recursivelyMakeskylineRequests(this.userMessageContent)
-				didEndLoop = recDidEndLoop
+				messageContent = assistantMessage
+			} else if (didToolUse) {
+				messageContent = "[Tool use only - no text response]"
 			} else {
-				// if there's no assistant_responses, that means we got no text or tool_use content blocks from API which we should assume is an error
-				await this.say(
-					"error",
-					"Unexpected API Response: The language model did not provide any assistant messages. This may indicate an issue with the API or the model's output.",
-				)
-				await this.addToApiConversationHistory({
-					role: "assistant",
-					content: [
-						{
-							type: "text",
-							text: "Failure: I did not provide a response.",
-						},
-					],
-				})
+				messageContent = "[Empty response]"
 			}
+
+			console.log(`[CONV-DEBUG] Adding assistant message to conversation history: "${messageContent.substring(0, 100)}..."`)
+			await this.addToApiConversationHistory({
+				role: "assistant",
+				content: [{ type: "text", text: messageContent }],
+			})
+
+			await pWaitFor(() => this.userMessageContentReady)
+
+			// if the model did not tool use, then we need to tell it to either use a tool or attempt_completion
+			if (!didToolUse) {
+				// normal request where tool use is required
+				this.userMessageContent.push({
+					type: "text",
+					text: formatResponse.noToolsUsed(),
+				})
+				this.consecutiveMistakeCount++
+			}
+
+			const recDidEndLoop = await this.recursivelyMakeskylineRequests(this.userMessageContent)
+			didEndLoop = recDidEndLoop
 
 			return didEndLoop // will always be false for now
 		} catch (error) {

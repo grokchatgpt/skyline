@@ -2,6 +2,14 @@ import { ApiHandler } from "@api/index"
 import { OpenAiHandler } from "@api/providers/openai"
 
 /**
+ * Tool result size limits to prevent context window overflow
+ */
+export const TOOL_RESULT_LIMITS = {
+	MAX_TOOL_RESULT_SIZE: 256 * 1024, // 256KB in bytes
+	TRUNCATION_SUFFIX: "\n\n===TOOL RESULT OVER THE LIMIT AND CONTENT IS TRUNCATED==="
+}
+
+/**
  * Gets context window information for the given API handler
  *
  * @param api The API handler to get context window information for
